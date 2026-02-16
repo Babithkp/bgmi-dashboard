@@ -10,6 +10,10 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME!;
 
+if (!BUCKET_NAME || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_REGION || !process.env.DATABASE_URL) {
+  throw new Error('AWS_S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_REGION environment variables are required');
+}
+
 export async function uploadToS3(file: Buffer, key: string, contentType: string): Promise<string> {
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
@@ -37,7 +41,7 @@ export async function deleteFromS3(key: string): Promise<void> {
 
 export function extractS3Key(url: string): string | null {
   if (!url) return null;
-  
+
   if (url.startsWith('s3://')) {
     const parts = url.replace('s3://', '').split('/');
     if (parts.length > 1) {
@@ -45,11 +49,11 @@ export function extractS3Key(url: string): string | null {
     }
     return null;
   }
-  
+
   const match = url.match(/https?:\/\/[^\/]+\/(.+)/);
   if (match && match[1]) {
     return match[1].split('?')[0];
   }
-  
+
   return url;
 }
