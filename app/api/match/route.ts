@@ -2,20 +2,20 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-    const { title, tournamentId } = await req.json();
-
+    const { title, tournamentId,group } = await req.json();
     try {
-
         const match = await prisma.match.create({
             data: {
                 name: title,
                 status: "Live",
                 tournamentId: tournamentId,
+                group: group,
             },
         });
         const teamTournaments = await prisma.teamTournament.findMany({
             where: {
                 tournamentId: tournamentId,
+                group: group,
             },
             include: {
                 team: {

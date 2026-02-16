@@ -70,7 +70,7 @@ export default function Tournaments() {
           width={400}
           height={250}
           unoptimized
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 "
         />
         {tournament.status === "live" && (
           <div className="absolute top-3 right-3 px-2.5 py-1 bg-red-500 text-white text-xs font-medium rounded-md flex items-center gap-1.5">

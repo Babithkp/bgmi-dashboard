@@ -1,14 +1,14 @@
 import { X } from 'lucide-react'
 
-interface AddTeamModalProps {
+interface DeleteModalProps  {
     isOpen: boolean;
     onClose: () => void;
-    deleteTeam: () => void;
+    deleteFunction: () => Promise<void>;
     isLoading: boolean;
 }
 
 
-export default function DeleteModel({ isOpen, onClose, deleteTeam, isLoading }: AddTeamModalProps) {
+export default function DeleteModel({ isOpen, onClose, deleteFunction, isLoading }: DeleteModalProps ) {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -43,7 +43,7 @@ export default function DeleteModel({ isOpen, onClose, deleteTeam, isLoading }: 
                             disabled={isLoading}
                             type="submit"
                             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                            onClick={deleteTeam}
+                            onClick={deleteFunction}
                         >
                             {isLoading ? "Deleting..." : "Delete"}
                         </button>

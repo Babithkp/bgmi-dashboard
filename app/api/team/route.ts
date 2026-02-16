@@ -8,6 +8,7 @@ export async function GET() {
                 players: {
                     select: {
                         name: true,
+                        image: true,
                     }
                 }
             }

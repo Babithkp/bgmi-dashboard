@@ -44,19 +44,21 @@ model TeamTournament {
   tournamentId String     @db.ObjectId
   team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  group        String
 
   @@unique([teamId, tournamentId])
 }
 
 model Match {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  name   String
-  status String @default("Live")
+  id                 String                   @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  status             String                   @default("Live")
   winTeam            Team?                    @relation(fields: [winTeamId], references: [id])
   winTeamId          String?                  @db.ObjectId
   playerPerformances MatchPlayerPerformance[]
-  tournament         Tournament?              @relation(fields: [tournamentId], references: [id])
+  tournament         Tournament?              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   tournamentId       String?                  @db.ObjectId
+  group              String
 }
 
 model MatchPlayerPerformance {

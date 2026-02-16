@@ -65,45 +65,63 @@ export default function Home() {
                 Active Tournament
               </h2>
 
+
+
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-xl font-medium text-gray-100 mb-2">
-                    {liveTournaments
-                      ? liveTournaments[0]?.name
-                      : "Start new Tournament"}
-                  </h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <span>
+                {liveTournaments && liveTournaments?.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-medium text-gray-100 mb-2">
                       {liveTournaments
-                        ? new Date(
-                            liveTournaments[0]?.date,
-                          ).toLocaleDateString()
-                        : "Start Date"}
-                    </span>
-                    <span className="w-1 h-1 rounded-full bg-gray-700"></span>
-                    <span>
-                      {liveTournaments
-                        ? liveTournaments[0]?.time
-                        : "Start Date"}
+                        ? liveTournaments[0]?.name
+                        : "Start new Tournament"}
+                    </h3>
+                    <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <span>
+                        {liveTournaments
+                          ? new Date(
+                              liveTournaments[0]?.date,
+                            ).toLocaleDateString()
+                          : "Start Date"}
+                      </span>
+                      <span className="w-1 h-1 rounded-full bg-gray-700"></span>
+                      <span>
+                        {liveTournaments
+                          ? liveTournaments[0]?.time
+                          : "Start Date"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {liveTournaments && liveTournaments?.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400">Status:</span>
+                    <span className="px-3 py-1 rounded-md bg-green-500/10 text-green-400 text-xs font-medium border border-green-500/20">
+                      Live
                     </span>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">Status:</span>
-                  <span className="px-3 py-1 rounded-md bg-green-500/10 text-green-400 text-xs font-medium border border-green-500/20">
-                    Live
-                  </span>
-                </div>
-
-                <div className="pt-4 border-t border-gray-800">
-                  <Link
-                    href={`/tournaments/${liveTournaments ? liveTournaments[0]?.id : 0}`}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Open Tournament
-                  </Link>
-                </div>
+                {liveTournaments && liveTournaments?.length > 0 && (
+                  <div className="pt-4 border-t border-gray-800">
+                    <Link
+                      href={`/tournaments/${liveTournaments ? liveTournaments[0]?.id : 0}`}
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Open Tournament
+                    </Link>
+                  </div>
+                )}
+                {liveTournaments && liveTournaments?.length === 0 && (
+                  <div className="pt-4 border-t border-gray-800">
+                    <Link
+                      href={`/tournaments`}
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Create Tournament
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -118,17 +136,23 @@ export default function Home() {
                   <p className="text-xs text-gray-500 mb-1">
                     Total Tournaments
                   </p>
-                  <p className="text-2xl font-medium text-gray-100">{tournamentsData?.tournaments?.length}</p>
+                  <p className="text-2xl font-medium text-gray-100">
+                    {tournamentsData?.tournaments?.length}
+                  </p>
                 </div>
 
                 <div className="border-t border-gray-800 pt-5">
                   <p className="text-xs text-gray-500 mb-1">Total Teams</p>
-                  <p className="text-2xl font-medium text-gray-100">{tournamentsData?.teamsCount}</p>
+                  <p className="text-2xl font-medium text-gray-100">
+                    {tournamentsData?.teamsCount}
+                  </p>
                 </div>
 
                 <div className="border-t border-gray-800 pt-5">
                   <p className="text-xs text-gray-500 mb-1">Total Players</p>
-                  <p className="text-2xl font-medium text-gray-100">{tournamentsData?.playersCount}</p>
+                  <p className="text-2xl font-medium text-gray-100">
+                    {tournamentsData?.playersCount}
+                  </p>
                 </div>
               </div>
             </div>
@@ -155,7 +179,8 @@ export default function Home() {
                         <div className="flex items-center gap-2 text-xs text-gray-400">
                           <Calendar className="w-3.5 h-3.5" />
                           <span>
-                            {new Date(tournament.date).toLocaleDateString()} • {tournament.time}
+                            {new Date(tournament.date).toLocaleDateString()} •{" "}
+                            {tournament.time}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500">

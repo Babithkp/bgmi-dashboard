@@ -8,10 +8,9 @@ export async function POST(req: Request) {
     const name = formData.get("name") as string;
     const date = formData.get("date") as string;
     const time = formData.get("time") as string;
-    const participatingTeamsRaw = formData.get("participatingTeams") as string;
     const thumbnail = formData.get("thumbnail") as File | null;
 
-    if (!name || !date || !time || !participatingTeamsRaw) {
+    if (!name || !date || !time) {
         return NextResponse.json(
             { error: "Missing required fields" },
             { status: 400 }
@@ -44,18 +43,6 @@ export async function POST(req: Request) {
                 image: thumbnailUrl,
             },
         });
-
-        const participatingTeams: string[] = JSON.parse(participatingTeamsRaw);
-
-        if (participatingTeams.length > 0) {
-            await prisma.teamTournament.createMany({
-                data: participatingTeams.map((teamId) => ({
-                    teamId,
-                    tournamentId: tournament.id,
-                })),
-            });
-        }
-
         return NextResponse.json({ success: true, tournament });
 
     } catch (error) {
@@ -73,7 +60,7 @@ export async function GET() {
             include: {
                 matches: true,
             }
-        });       
+        });
         return NextResponse.json(tournaments);
 
     } catch (error) {
