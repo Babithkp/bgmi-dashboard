@@ -28,7 +28,7 @@ interface Match {
 export default function Home() {
   const [tournamentsData, setTournamentsData] = useState<DashboardData>();
 
-  const liveTournaments = tournamentsData?.tournaments.filter((t) =>
+  const liveTournaments = tournamentsData?.tournaments?.filter((t) =>
     t.matches.some((match) => match.status === "Live"),
   );
   const fetchTournaments = async () => {
