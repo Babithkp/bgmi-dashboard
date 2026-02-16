@@ -118,7 +118,7 @@ export default function Home() {
                   <p className="text-xs text-gray-500 mb-1">
                     Total Tournaments
                   </p>
-                  <p className="text-2xl font-medium text-gray-100">{tournamentsData?.tournaments.length}</p>
+                  <p className="text-2xl font-medium text-gray-100">{tournamentsData?.tournaments?.length}</p>
                 </div>
 
                 <div className="border-t border-gray-800 pt-5">
