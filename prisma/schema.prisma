@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id                 String                   @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  gameName           String
+  image              String
+  team               Team?                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId             String?                  @db.ObjectId
+  playerPerformances MatchPlayerPerformance[]
+}
+
+model Team {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  image     String
+  players   Player[]
+  matches   Match[]
+  createdAt DateTime @default(now())
+
+  teamTournaments TeamTournament[]
+}
+
+model Tournament {
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  image           String
+  date            DateTime
+  time            String
+  matches         Match[]
+  teamTournaments TeamTournament[]
+}
+
+model TeamTournament {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  teamId       String     @db.ObjectId
+  tournamentId String     @db.ObjectId
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, tournamentId])
+}
+
+model Match {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  name   String
+  status String @default("Live")
+  winTeam            Team?                    @relation(fields: [winTeamId], references: [id])
+  winTeamId          String?                  @db.ObjectId
+  playerPerformances MatchPlayerPerformance[]
+  tournament         Tournament?              @relation(fields: [tournamentId], references: [id])
+  tournamentId       String?                  @db.ObjectId
+}
+
+model MatchPlayerPerformance {
+  id               String @id @default(auto()) @map("_id") @db.ObjectId
+  player           Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  playerId         String @db.ObjectId
+  match            Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId          String @db.ObjectId
+  placementPoints  Int    @default(0)
+  finishesPoints   Int    @default(0)
+  totalPoints      Int    @default(0)
+  status           String @default("Alive")
+  teamContribution Int    @default(0)
+
+  @@unique([playerId, matchId])
+}

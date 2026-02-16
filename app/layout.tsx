@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Sidebar from './components/Sidebar';
+import { Toaster } from "@/components/ui/sonner"
+// @ts-expect-error - CSS imports don't have type declarations
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +30,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Toaster />
+        <div className="flex h-screen bg-[#0a0e1a] text-gray-300">
+          {/* Sidebar */}
+          <Sidebar />
+
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {children}
+          </div>
+        </div>
       </body>
     </html>
   );
