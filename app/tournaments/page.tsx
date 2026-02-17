@@ -38,7 +38,7 @@ export default function Tournaments() {
   const upcomingTournaments = tournaments.filter((t) => {
     const d = new Date(t.date);
     d.setHours(0, 0, 0, 0);
-    return d.getTime() > today.getTime();
+    return d.getTime() >= today.getTime();
   });
 
   const pastTournaments = tournaments.filter((t) => {

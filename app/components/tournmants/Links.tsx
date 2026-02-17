@@ -15,24 +15,14 @@ export default function Links({
 
   const mockLinks = [
     {
-      id: 2,
-      name: "Top 5 MVP (different players)",
-      url: `${window.location.origin}/api/tournament/${tournamentId}/topfivemvp`,
-    },
-    {
-      id: 3,
-      name: "WWCD stats (winning team)",
-      url: "https://api.tournament.com/feeds/match-wwcd-stats",
-    },
-    {
       id: 4,
       name: "Overall top MVP",
-      url: "https://api.tournament.com/feeds/overall-mvp",
+      url: `${window.location.origin}/api/tournament/${tournamentId}/mvp`,
     },
     {
       id: 5,
       name: "Overall top 5 MVP",
-      url: "https://api.tournament.com/feeds/overall-top5-mvp",
+      url: `${window.location.origin}/api/tournament/${tournamentId}/topfivemvp`,
     },
     {
       id: 6,

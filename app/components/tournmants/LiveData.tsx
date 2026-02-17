@@ -338,6 +338,37 @@ export default function LiveData({
                 </div>
                 <div className="flex items-center gap-4 justify-between">
                   <p className="text-sm font-medium text-gray-400 w-full">
+                  Top 5 MVP (different players)
+                  </p>
+                  <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
+                    <p>
+                      {window.location.origin}/api/match/{selectedMatch?.id}/topfivemvp
+                    </p>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(
+                          `${window.location.origin}/api/match/${selectedMatch?.id}/topfivemvp`,
+                          3,
+                        )
+                      }
+                      className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
+                    >
+                      {copiedId === 3 ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-400" />
+                          <span className="text-green-400">Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 justify-between">
+                  <p className="text-sm font-medium text-gray-400 w-full">
                     WWCD Stats
                   </p>
                   <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
@@ -348,12 +379,12 @@ export default function LiveData({
                       onClick={() =>
                         copyToClipboard(
                           `${window.location.origin}/api/match/${selectedMatch?.id}/winner`,
-                          3,
+                          4,
                         )
                       }
                       className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
                     >
-                      {copiedId === 3 ? (
+                      {copiedId === 4 ? (
                         <>
                           <Check className="w-4 h-4 text-green-400" />
                           <span className="text-green-400">Copied</span>
