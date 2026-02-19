@@ -11,7 +11,7 @@ export async function createPlayerAction(formData: FormData) {
     const editImage = formData.get('editImage') as string
     const playerId = formData.get('player') as string
 
-    let imageUrl = editImage || ""   
+    let imageUrl = editImage || ""
 
     if (image instanceof File && image.size > 0) {
         const buffer = Buffer.from(await image.arrayBuffer())
@@ -22,24 +22,48 @@ export async function createPlayerAction(formData: FormData) {
     }
 
     if (!playerId) {
-        await prisma.player.create({
-            data: {
-                name,
-                gameName: ign,
-                teamId: teamId,
-                image: imageUrl,
-            }
-        })
+        if (teamId === "Unassigned") {
+            await prisma.player.create({
+                data: {
+                    name,
+                    gameName: ign,
+                    teamId: null,
+                    image: imageUrl,
+                }
+            })
+        } else {
+            await prisma.player.create({
+                data: {
+                    name,
+                    gameName: ign,
+                    teamId: teamId,
+                    image: imageUrl,
+                }
+            })
+        }
     } else {
-        await prisma.player.update({
-            where: { id: playerId },
-            data: {
-                name,
-                gameName: ign,
-                teamId: teamId,
-                image: imageUrl,
-            }
-        })
+        if (teamId === "Unassigned") {
+            await prisma.player.update({
+                where: { id: playerId },
+                data: {
+                    name,
+                    teamId: null,
+                    gameName: ign,
+                    image: imageUrl,
+                }
+            })
+            return
+        } else {
+            await prisma.player.update({
+                where: { id: playerId },
+                data: {
+                    name,
+                    gameName: ign,
+                    teamId: teamId,
+                    image: imageUrl,
+                }
+            })
+        }
     }
 }
 
@@ -50,7 +74,7 @@ export async function createTeamAction(formData: FormData) {
     const image = formData.get('image')
     const editImage = formData.get('editImage') as string
 
-    let imageUrl = editImage || ""   
+    let imageUrl = editImage || ""
 
     if (image instanceof File && image.size > 0) {
         const buffer = Buffer.from(await image.arrayBuffer())

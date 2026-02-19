@@ -1,65 +1,120 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request,
-  context: { params: Promise<{ id: string }> }) {
+type TeamStats = {
+  teamName: string;
+  totalFinishPoints: number;
+  totalPoints: number;
+  aliveCount: number;
+  deadCount: number;
+};
+
+
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await context.params;
-    const matches = await prisma.match.findUnique({
-      where: {
-        id: id,
-      },
+
+    const match = await prisma.match.findUnique({
+      where: { id },
       include: {
-        playerPerformances: {
-          include: {
-            player: {
-              include: {
-                team: {
-                  select: {
-                    name: true
-                  }
-                }
-              }
-            }
-          }
+        group: {
+          select: {
+            name: true,
+          },
         },
-        winTeam: {
+        matchTeam: {
           include: {
-            players: true
-          }
-        }
-      }
+            playerPerformances: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json({
-      matchName: matches?.name,
-      groupName: matches?.group,
-      players: matches?.playerPerformances.map((p) => ({
-        name: p.player.name,
-        gameName: p.player.name,
-        team: p.player.team?.name,
-        image: p.player.image,
-        placementPoints: p.placementPoints,
-        finishesPoints: p.finishesPoints,
-        totalPoints: p.totalPoints,
-        teamContribution: p.teamContribution,
-        status: p.status,
-      })),
-      winingTeam: {
-        name: matches?.winTeam?.name,
-        image: matches?.winTeam?.image,
-        players: matches?.winTeam?.players.map((p) => ({
-          name: p.name,
-          gameName: p.name,
-          image: p.image,
-        })),
+    if (!match) {
+      return NextResponse.json(
+        { error: "Match not found" },
+        { status: 404 }
+      );
+    }
+
+    const allPerformances =
+      match.matchTeam.flatMap((team) => team.playerPerformances);
+
+    if (!allPerformances.length) {
+      return NextResponse.json(
+        { error: "No performances found" },
+        { status: 404 }
+      );
+    }
+
+    const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
+      (acc, team) => {
+        if (!acc[team.id]) {
+          acc[team.id] = {
+            teamName: team.name,
+            totalFinishPoints: 0,
+            totalPoints: 0,
+            aliveCount: 0,
+            deadCount: 0,
+          };
+        }
+
+        team.playerPerformances.forEach((perf) => {
+          acc[team.id].totalFinishPoints += perf.finishesPoints;
+          acc[team.id].totalPoints += perf.totalPoints;
+
+          if (perf.status === "Alive") {
+            acc[team.id].aliveCount += 1;
+          } else if (perf.status === "Dead") {
+            acc[team.id].deadCount += 1;
+          }
+        });
+
+        return acc;
       },
+      {}
+    );
+
+    const rankedTeams = Object.values(teamStats)
+      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .map((team, index) => ({
+        teamRank: index + 1,
+        teamName: team.teamName,
+        teamTotalFinishPoints: team.totalFinishPoints,
+        teamTotalPoints: team.totalPoints,
+        aliveCount: team.aliveCount,
+        deadCount: team.deadCount,
+      }));
+
+    return NextResponse.json({
+      matchName: match.name,
+      groupName: match.group?.name ?? "Unknown Group",
+      status: match.status,
+      teams: rankedTeams,
     });
+
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Failed to fetch matches" }, { status: 500 });
+    console.error("TEAM RANK ERROR:", error);
+
+    return NextResponse.json(
+      { error: "Failed to fetch team rankings" },
+      { status: 500 }
+    );
   }
 }
+
+
+interface Performance {
+  id: string;
+  status: "Alive" | "Dead";
+  placementPoints: number;
+  finishesPoints: number;
+  matchTeamId: string | null;
+}
+
 
 export async function PATCH(
   req: Request,
@@ -68,57 +123,76 @@ export async function PATCH(
   try {
     const { id } = await context.params;
 
-    const {
-      performances,
-      winningTeamId,
-    }: {
-      performances: {
-        id: string;
-        status: "Alive" | "Dead";
-        placementPoints: number;
-        finishesPoints: number;
-      }[];
-      winningTeamId: string | null;
-    } = await req.json();
+    const { performances, winningTeamId } = await req.json();
 
-    if (!performances || performances.length === 0) {
+    if (!performances?.length) {
       return NextResponse.json(
         { error: "No performances provided" },
         { status: 400 }
       );
     }
 
-    const dbPerformances = await prisma.matchPlayerPerformance.findMany({
+    const validPerformances = await prisma.matchPlayerPerformance.count({
       where: {
-        id: { in: performances.map((p) => p.id) },
-      },
-      select: {
-        id: true,
-        player: {
-          select: {
-            teamId: true,
-          },
+        id: { in: performances.map((p: Performance) => p.id) },
+        matchTeam: {
+          matchId: id,
         },
       },
     });
 
-    const performancesWithTeam = performances.map((p) => {
+    if (validPerformances !== performances.length) {
+      return NextResponse.json(
+        { error: "Invalid performance data" },
+        { status: 400 }
+      );
+    }
+
+    if (winningTeamId) {
+      const validWinner = await prisma.matchTeam.findFirst({
+        where: {
+          id: winningTeamId,
+          matchId: id,
+        },
+      });
+
+      if (!validWinner) {
+        return NextResponse.json(
+          { error: "Invalid winner selected" },
+          { status: 400 }
+        );
+      }
+    }
+
+    const dbPerformances = await prisma.matchPlayerPerformance.findMany({
+      where: {
+        id: { in: performances.map((p: Performance) => p.id) },
+      },
+      select: {
+        id: true,
+        matchTeamId: true,
+      },
+    });
+
+    const performancesWithTeam: Performance[] = performances.map((p: Performance) => {
       const db = dbPerformances.find((d) => d.id === p.id);
 
       return {
         ...p,
-        teamId: db?.player.teamId ?? null,
+        matchTeamId: db?.matchTeamId ?? null,
       };
     });
 
-    const performancesByTeam = performancesWithTeam.reduce((acc, p) => {
-      if (!p.teamId) return acc;
+    const performancesByTeam = performancesWithTeam.reduce<
+      Record<string, Performance[]>
+    >((acc, p) => {
+      if (!p.matchTeamId) return acc;
 
-      if (!acc[p.teamId]) acc[p.teamId] = [];
-      acc[p.teamId].push(p);
+      if (!acc[p.matchTeamId]) acc[p.matchTeamId] = [];
+      acc[p.matchTeamId].push(p);
 
       return acc;
-    }, {} as Record<string, typeof performancesWithTeam>);
+    }, {});
 
     await prisma.$transaction(
       Object.values(performancesByTeam).flatMap((teamPlayers) => {
@@ -126,13 +200,13 @@ export async function PATCH(
           (sum, p) => sum + p.finishesPoints,
           0
         );
-
+    
         return teamPlayers.map((p) => {
           const contribution =
             totalFinishes > 0
               ? (p.finishesPoints / totalFinishes) * 100
               : 0;
-
+    
           return prisma.matchPlayerPerformance.update({
             where: { id: p.id },
             data: {
@@ -140,18 +214,19 @@ export async function PATCH(
               placementPoints: p.placementPoints,
               finishesPoints: p.finishesPoints,
               totalPoints: p.placementPoints + p.finishesPoints,
-              teamContribution: Math.round(contribution),
+              teamContribution: Number(contribution.toFixed(2)),
             },
           });
         });
       })
     );
+    
 
     if (winningTeamId) {
       await prisma.match.update({
         where: { id },
         data: {
-          winTeamId: winningTeamId,
+          winnerId: winningTeamId,
           status: "Completed",
         },
       });
@@ -175,6 +250,15 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
+    const match = await prisma.match.findUnique({
+      where: { id },
+    });
+    if (!match) {
+      return NextResponse.json(
+        { error: "Match not found" },
+        { status: 404 }
+      );
+    }
     await prisma.match.delete({
       where: { id },
     });

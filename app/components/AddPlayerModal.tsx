@@ -19,6 +19,7 @@ export default function AddPlayerModal({ isOpen, onClose, teamList, onSubmit, pl
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [editable, setEditable] = useState(false);
   const [playerData, setPlayerData] = useState({
     id: '',
     name: '',
@@ -26,7 +27,6 @@ export default function AddPlayerModal({ isOpen, onClose, teamList, onSubmit, pl
     team: "",
     image: '',
   });
-
 
 
 
@@ -54,8 +54,10 @@ export default function AddPlayerModal({ isOpen, onClose, teamList, onSubmit, pl
         team: '',
       });
       setPreviewUrl('');
+      setEditable(false);
       return;
     }
+    setEditable(true);
 
     const nextName = player.name;
     const nextImage = player.image;
@@ -96,7 +98,7 @@ export default function AddPlayerModal({ isOpen, onClose, teamList, onSubmit, pl
 
       <div className="relative bg-[#131720] border border-gray-800 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
-          <h2 className="text-lg font-medium text-gray-100">Add New Player</h2>
+          <h2 className="text-lg font-medium text-gray-100">{editable ? "Edit Player" : "Add New Player"}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 flex items-center justify-center transition-colors"
@@ -110,6 +112,14 @@ export default function AddPlayerModal({ isOpen, onClose, teamList, onSubmit, pl
           await createPlayerAction(formadata)
           setIsLoading(false)
           onClose()
+          setPlayerData({
+            id: '',
+            name: '',
+            image: '',
+            gameName: '',
+            team: '',
+          });
+          setPreviewUrl('');
           toast.success('Player created successfully')
           onSubmit()
         }} className="p-6 space-y-4"  >
@@ -162,6 +172,7 @@ export default function AddPlayerModal({ isOpen, onClose, teamList, onSubmit, pl
               className="w-full px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-gray-700"
             >
               <option value="">Select a team</option>
+              <option value="Unassigned">Unassigned</option>
               {teamList.map((team, i) => (
                 <option key={i} value={team.id}>
                   {team.name}
@@ -202,6 +213,7 @@ export default function AddPlayerModal({ isOpen, onClose, teamList, onSubmit, pl
                     name="photo"
                     type="file"
                     accept="image/*"
+                    required
                     onChange={handleFileChange}
                     className="hidden"
                   />
@@ -228,7 +240,7 @@ export default function AddPlayerModal({ isOpen, onClose, teamList, onSubmit, pl
               type="submit"
               className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
-              {isLoading ? 'Creating...' : 'Add Player'}
+              {isLoading ? 'Creating...' : editable ? 'Update Player' : 'Add Player'}
             </button>
           </div>
         </form>

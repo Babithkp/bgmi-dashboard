@@ -1,16 +1,20 @@
 "use client";
-import { Match, Tournament } from "@/app/tournaments/[id]/page";
 import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteModel from "../DeleteModel";
+import {
+  MatchPlayerPerformanceTypes,
+  MatchTypes,
+  TournamentTypes,
+} from "@/lib/types";
 
 interface LiveDataProps {
-  allMatchData: Match[] | undefined;
-  setSelectedMatch: React.Dispatch<React.SetStateAction<Match | null>>;
-  selectedMatch: Match | null;
+  allMatchData: MatchTypes[] | undefined;
+  setSelectedMatch: React.Dispatch<React.SetStateAction<MatchTypes | null>>;
+  selectedMatch: MatchTypes | null;
   refetchAll: () => void;
-  tournament: Tournament | undefined;
+  tournament: TournamentTypes | undefined;
 }
 
 export default function LiveData({
@@ -28,13 +32,12 @@ export default function LiveData({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-
-
   const copyToClipboard = (url: string, id: number) => {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+  
 
   const handleDeleteMatch = async () => {
     setIsLoading(true);
@@ -55,12 +58,16 @@ export default function LiveData({
 
       return {
         ...prev,
-        playerPerformances: prev.playerPerformances.map((p) =>
-          p.id === performanceId ? { ...p, status: value } : p,
-        ),
+        matchTeam: prev.matchTeam?.map((team) => ({
+          ...team,
+          playerPerformances: team.playerPerformances.map((p) =>
+            p.id === performanceId ? { ...p, status: value } : p,
+          ),
+        })),
       };
     });
   };
+
   const handlePointsChange = (
     performanceId: string,
     field: "placementPoints" | "finishesPoints",
@@ -71,32 +78,39 @@ export default function LiveData({
 
       return {
         ...prev,
-        playerPerformances: prev.playerPerformances.map((p) => {
-          if (p.id !== performanceId) return p;
-          const numericValue = Number(value);
-          const updated = {
-            ...p,
-            [field]: numericValue,
-          };
-          return {
-            ...updated,
-            totalPoints: updated.placementPoints + updated.finishesPoints,
-          };
-        }),
+        matchTeam: prev.matchTeam?.map((team) => ({
+          ...team,
+          playerPerformances: team.playerPerformances.map((p) => {
+            if (p.id !== performanceId) return p;
+
+            const numericValue = Number(value);
+
+            const updated = {
+              ...p,
+              [field]: numericValue,
+            };
+
+            return {
+              ...updated,
+              totalPoints: updated.placementPoints + updated.finishesPoints,
+            };
+          }),
+        })),
       };
     });
   };
 
-  const groupedByTeam = selectedMatch?.playerPerformances.reduce(
-    (acc, performance) => {
-      const teamName = performance.player?.team?.name || "Unknown Team";
+  const groupedByTeam = selectedMatch?.matchTeam?.reduce(
+    (acc, team) => {
+      const teamName = team.name ?? "Unknown Team";
+
       if (!acc[teamName]) acc[teamName] = [];
-      acc[teamName].push(performance);
+
+      acc[teamName].push(...team.playerPerformances); 
       return acc;
     },
-    {} as Record<string, typeof selectedMatch.playerPerformances>,
+    {} as Record<string, MatchPlayerPerformanceTypes[]>,
   );
-
   const handleCreateMatch = async () => {
     if (!newmatchTitle.trim()) {
       toast.error("Enter match title");
@@ -108,18 +122,19 @@ export default function LiveData({
         body: JSON.stringify({
           title: newmatchTitle,
           tournamentId: tournament?.id,
-          group: selectedGroup,
+          groupId: selectedGroup,
         }),
       });
 
       if (!res.ok) {
-        toast.error("Failed to create match");
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to create match");
         return;
       }
       setSelectedGroup("");
       setNewMatchTitle("");
-      toast.success("Match created");
       refetchAll();
+      toast.success("Match created");
     } catch (error) {
       console.error(error);
       toast.error("Something went wrong");
@@ -128,13 +143,23 @@ export default function LiveData({
 
   const handleSaveScores = async () => {
     if (!selectedMatch) return;
+    setIsLoading(true);
+    const performances =
+      selectedMatch.matchTeam?.flatMap((team) =>
+        team.playerPerformances.map((p) => ({
+          id: p.id,
+          status: p.status,
+          placementPoints: p.placementPoints,
+          finishesPoints: p.finishesPoints,
+        })),
+      ) ?? [];
 
     try {
       const res = await fetch(`/api/match/${selectedMatch.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          performances: selectedMatch.playerPerformances,
+          performances: performances,
           winningTeamId,
         }),
       });
@@ -144,14 +169,15 @@ export default function LiveData({
         return;
       }
       refetchAll();
-      toast.success("Scores updated ✅");
+      toast.success("Scores updated");
     } catch (error) {
       console.error(error);
       toast.error("Something went wrong");
     }
+    setIsLoading(false);
   };
 
-  const getMatchStatusBadge = (status: Match["status"]) => {
+  const getMatchStatusBadge = (status: MatchTypes["status"]) => {
     switch (status) {
       case "Live":
         return (
@@ -173,6 +199,7 @@ export default function LiveData({
         );
     }
   };
+
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -197,9 +224,9 @@ export default function LiveData({
               value={selectedGroup}
             >
               <option value="">Select Group</option>
-              {tournament?.teamTournaments.map((t, i) => (
-                <option value={t.group} key={i}>
-                  {t.group}
+              {tournament?.groups?.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
                 </option>
               ))}
             </select>
@@ -213,6 +240,7 @@ export default function LiveData({
               Create Match
             </button>
           </div>
+          
 
           <div className="flex items-center gap-3 justify-between">
             <h2 className="text-sm font-medium text-gray-400">Select Match</h2>
@@ -259,15 +287,20 @@ export default function LiveData({
             </div>
           </div>
         </div>
+        {selectedMatch?.status === "Completed" && (
+          <div className="text-xs text-green-400 mb-2">
+            🔒 Match Completed — Scores Locked
+          </div>
+        )}
       </div>
 
       {Array.isArray(allMatchData) && allMatchData.length > 0 && (
         <div className="bg-[#131720] border border-gray-800 rounded-xl p-6">
           <div className=" mb-4 flex flex-col gap-4">
-            <div className="flex gap-4 items-center w-full justify-between">
+            <div className="flex gap-4 items-start w-full justify-between">
               <div className="">
                 <p className="text-sm font-medium text-gray-400">
-                  Group: {selectedMatch?.group}
+                  Group: {selectedMatch?.group?.name}
                 </p>
                 <p className="text-sm font-medium text-gray-400">
                   {selectedMatch?.name} - Live Data Entry
@@ -305,133 +338,123 @@ export default function LiveData({
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 justify-between">
-                  <p className="text-sm font-medium text-gray-400 w-full">
-                    MVP of that match
-                  </p>
-                  <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
-                    <p>
-                      {window.location.origin}/api/match/{selectedMatch?.id}/mvp
-                    </p>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(
-                          `${window.location.origin}/api/match/${selectedMatch?.id}/mvp`,
-                          2,
-                        )
-                      }
-                      className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
-                    >
-                      {copiedId === 2 ? (
-                        <>
-                          <Check className="w-4 h-4 text-green-400" />
-                          <span className="text-green-400">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          Copy
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 justify-between">
-                  <p className="text-sm font-medium text-gray-400 w-full">
-                  Top 5 MVP (different players)
-                  </p>
-                  <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
-                    <p>
-                      {window.location.origin}/api/match/{selectedMatch?.id}/topfivemvp
-                    </p>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(
-                          `${window.location.origin}/api/match/${selectedMatch?.id}/topfivemvp`,
-                          3,
-                        )
-                      }
-                      className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
-                    >
-                      {copiedId === 3 ? (
-                        <>
-                          <Check className="w-4 h-4 text-green-400" />
-                          <span className="text-green-400">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          Copy
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 justify-between">
-                  <p className="text-sm font-medium text-gray-400 w-full">
-                    WWCD Stats
-                  </p>
-                  <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
-                    <p>
-                      {window.location.origin}/api/match/{selectedMatch?.id}/winner
-                    </p>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(
-                          `${window.location.origin}/api/match/${selectedMatch?.id}/winner`,
-                          4,
-                        )
-                      }
-                      className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
-                    >
-                      {copiedId === 4 ? (
-                        <>
-                          <Check className="w-4 h-4 text-green-400" />
-                          <span className="text-green-400">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          Copy
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
+                {selectedMatch?.status === "Completed" && (
+                  <>
+                    <div className="flex items-center gap-4 justify-between">
+                      <p className="text-sm font-medium text-gray-400 w-full">
+                        MVP of that match
+                      </p>
+                      <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
+                        <p>
+                          {window.location.origin}/api/match/{selectedMatch?.id}
+                          /mvp
+                        </p>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(
+                              `${window.location.origin}/api/match/${selectedMatch?.id}/mvp`,
+                              2,
+                            )
+                          }
+                          className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
+                        >
+                          {copiedId === 2 ? (
+                            <>
+                              <Check className="w-4 h-4 text-green-400" />
+                              <span className="text-green-400">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4" />
+                              Copy
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 justify-between">
+                      <p className="text-sm font-medium text-gray-400 w-full">
+                        Top 5 MVP (different players)
+                      </p>
+                      <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
+                        <p>
+                          {window.location.origin}/api/match/{selectedMatch?.id}
+                          /topfivemvp
+                        </p>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(
+                              `${window.location.origin}/api/match/${selectedMatch?.id}/topfivemvp`,
+                              3,
+                            )
+                          }
+                          className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
+                        >
+                          {copiedId === 3 ? (
+                            <>
+                              <Check className="w-4 h-4 text-green-400" />
+                              <span className="text-green-400">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4" />
+                              Copy
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 justify-between">
+                      <p className="text-sm font-medium text-gray-400 w-full">
+                        WWCD Stats
+                      </p>
+                      <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
+                        <p>
+                          {window.location.origin}/api/match/{selectedMatch?.id}
+                          /winner
+                        </p>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(
+                              `${window.location.origin}/api/match/${selectedMatch?.id}/winner`,
+                              4,
+                            )
+                          }
+                          className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
+                        >
+                          {copiedId === 4 ? (
+                            <>
+                              <Check className="w-4 h-4 text-green-400" />
+                              <span className="text-green-400">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4" />
+                              Copy
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-            <div className="w-full flex items-center gap-4 justify-end">
-              <select
-                value={selectedMatch?.winTeam?.id || winningTeamId || ""}
-                disabled={selectedMatch?.status === "Completed"}
-                onChange={(e) => setWinningTeamId(e.target.value)}
-                className="px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm  text-gray-300 focus:outline-none focus:border-gray-700"
-              >
-                <option value="">Select Winner</option>
-
-                {tournament?.teamTournaments
-                  ?.filter((team) => team.group === selectedMatch?.group)
-                  .map((tt) => (
-                    <option key={tt.team.id} value={tt.team.id}>
-                      {tt.team.name}
-                    </option>
-                  ))}
-              </select>
-              <button
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium
-              transition-colors flex items-center gap-2"
-                onClick={handleSaveScores}
-                // disabled={selectedMatch?.status === "Completed"}
-              >
-                <Save className="w-4 h-4" />
-                Submit Data
-              </button>
+            <div className="w-full flex items-center gap-4 justify-between">
               <button
                 className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 onClick={() => setIsDeleteModalOpen(true)}
                 disabled={selectedMatch?.status === "Completed"}
               >
                 <Trash2 className="w-4 h-4 text-red-400" />
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium
+              transition-colors flex items-center gap-2"
+                onClick={handleSaveScores}
+                disabled={isLoading || selectedMatch?.status === "Completed"}
+              >
+                {isLoading ? "Updating..." : "Update Data"}
               </button>
             </div>
           </div>
@@ -478,7 +501,7 @@ export default function LiveData({
                           <tr key={performance.id}>
                             <td className="px-4 py-3">
                               <span className="text-sm text-gray-300">
-                                {performance.player?.name}
+                                {performance.name}
                               </span>
                             </td>
 
@@ -507,6 +530,7 @@ export default function LiveData({
                               <input
                                 type="number"
                                 value={performance.placementPoints}
+                                min={0}
                                 onChange={(e) =>
                                   handlePointsChange(
                                     performance.id,
@@ -523,6 +547,7 @@ export default function LiveData({
                               <input
                                 type="number"
                                 value={performance.finishesPoints}
+                                min={0}
                                 onChange={(e) =>
                                   handlePointsChange(
                                     performance.id,
@@ -548,6 +573,36 @@ export default function LiveData({
                 )}
             </tbody>
           </table>
+          <div className="w-full flex items-center gap-4 justify-end">
+            <select
+              value={selectedMatch?.winTeam?.id || winningTeamId || ""}
+              disabled={selectedMatch?.status === "Completed"}
+              onChange={(e) => setWinningTeamId(e.target.value)}
+              className="px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm  text-gray-300 focus:outline-none focus:border-gray-700"
+            >
+              <option value="">Select Winner</option>
+              {selectedMatch?.matchTeam?.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+            <button
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium
+              transition-colors flex items-center gap-2"
+              onClick={handleSaveScores}
+              disabled={isLoading || selectedMatch?.status === "Completed"}
+            >
+              {isLoading ? (
+                "Submit..."
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Submit Data
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
       <DeleteModel

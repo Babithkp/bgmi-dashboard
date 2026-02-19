@@ -8,70 +8,94 @@ datasource db {
 }
 
 model Player {
-  id                 String                   @id @default(auto()) @map("_id") @db.ObjectId
-  name               String
-  gameName           String
-  image              String
-  team               Team?                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  teamId             String?                  @db.ObjectId
-  playerPerformances MatchPlayerPerformance[]
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  gameName String
+  image    String
+  team     Team?   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId   String? @db.ObjectId
 }
 
 model Team {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  image     String
-  players   Player[]
-  matches   Match[]
-  createdAt DateTime @default(now())
-
-  teamTournaments TeamTournament[]
+  id                  String                @id @default(auto()) @map("_id") @db.ObjectId
+  name                String                @unique
+  image               String
+  players             Player[]
+  createdAt           DateTime              @default(now())
+  groupTeamTournament GroupTeamTournament[]
 }
 
 model Tournament {
-  id              String           @id @default(auto()) @map("_id") @db.ObjectId
-  name            String
-  image           String
-  date            DateTime
-  time            String
-  matches         Match[]
-  teamTournaments TeamTournament[]
+  id                  String                @id @default(auto()) @map("_id") @db.ObjectId
+  name                String
+  image               String
+  date                DateTime
+  time                String
+  matches             Match[]
+  groups              Group[]
+  groupTeamTournament GroupTeamTournament[]
 }
 
-model TeamTournament {
+model Group {
+  id                  String                @id @default(auto()) @map("_id") @db.ObjectId
+  name                String
+  tournament          Tournament?           @relation(fields: [tournamentId], references: [id])
+  tournamentId        String?               @db.ObjectId
+  groupTeamTournament GroupTeamTournament[]
+  matches             Match[]
+}
+
+model GroupTeamTournament {
   id           String     @id @default(auto()) @map("_id") @db.ObjectId
-  teamId       String     @db.ObjectId
+  group        Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String     @db.ObjectId
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   tournamentId String     @db.ObjectId
   team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  group        String
+  teamId       String     @db.ObjectId
 
-  @@unique([teamId, tournamentId])
+  @@unique([groupId, tournamentId, teamId])
 }
 
 model Match {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  status       String?     @default("Live")
+  group        Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String      @db.ObjectId
+  matchTeam    MatchTeam[]
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String?     @db.ObjectId
+  winTeam      MatchTeam?  @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  winnerId     String?     @db.ObjectId
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([tournamentId, groupId, name])
+}
+
+model MatchTeam {
   id                 String                   @id @default(auto()) @map("_id") @db.ObjectId
+  group              String                   @db.ObjectId
   name               String
-  status             String                   @default("Live")
-  winTeam            Team?                    @relation(fields: [winTeamId], references: [id])
-  winTeamId          String?                  @db.ObjectId
+  image              String
+  status             String?                  @default("Live")
+  match              Match?                   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId            String?                  @db.ObjectId
   playerPerformances MatchPlayerPerformance[]
-  tournament         Tournament?              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  tournamentId       String?                  @db.ObjectId
-  group              String
+  wonMatches         Match[]                  @relation("MatchWinner")
+
+  @@unique([matchId, name])
 }
 
 model MatchPlayerPerformance {
-  id               String @id @default(auto()) @map("_id") @db.ObjectId
-  player           Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  playerId         String @db.ObjectId
-  match            Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  matchId          String @db.ObjectId
-  placementPoints  Int    @default(0)
-  finishesPoints   Int    @default(0)
-  totalPoints      Int    @default(0)
-  status           String @default("Alive")
-  teamContribution Int    @default(0)
-
-  @@unique([playerId, matchId])
+  id               String     @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  image            String
+  placementPoints  Int        @default(0)
+  finishesPoints   Int        @default(0)
+  totalPoints      Int        @default(0)
+  status           String     @default("Alive")
+  teamContribution Int        @default(0)
+  matchTeam        MatchTeam? @relation(fields: [matchTeamId], references: [id], onDelete: Cascade)
+  matchTeamId      String?    @db.ObjectId
 }

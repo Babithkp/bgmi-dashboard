@@ -1,5 +1,4 @@
-"use client";
-import Image from "next/image";
+"use client";import Image from "next/image";
 import { PlayerFormData, TeamFormData } from "../teams-players/page";
 import { Edit, Eye, Filter, Plus, Search, Trash2 } from "lucide-react";
 import DeleteModel from "./DeleteModel";
@@ -114,7 +113,7 @@ export default function PlayersList({
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-sm text-gray-400">
-                    {player.team.name}
+                    {player.team ? player.team.name : "Unassigned"}
                   </span>
                 </td>
                 <td className="px-6 py-4">

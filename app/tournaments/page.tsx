@@ -1,47 +1,31 @@
-"use client";import { useEffect, useState } from "react";
+"use client";
+import { useEffect, useState } from "react";
 import { User, Plus, Search, Calendar } from "lucide-react";
 import CreateTournamentModal from "../components/CreateTournamentModal";
 import Link from "next/link";
 import Image from "next/image";
+import { TournamentTypes } from "@/lib/types";
 
-type TournamentStatus = "upcoming" | "live" | "past";
-
-interface Tournament {
-  id: number;
-  name: string;
-  image: string;
-  totalDays: number;
-  totalMatches: number;
-  date: string;
-  time: string;
-  status: TournamentStatus;
-  matches: Match[];
-}
-
-interface Match {
-  id: string;
-  status: "Live" | "Completed";
-}
 
 export default function Tournaments() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournaments, setTournaments] = useState<TournamentTypes[]>([]);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0); // normalize
 
-  const liveTournaments = tournaments.filter((t) =>
+  const liveTournaments = tournaments?.filter((t) =>
     t.matches.some((match) => match.status === "Live"),
   );
 
-  const upcomingTournaments = tournaments.filter((t) => {
+  const upcomingTournaments = tournaments?.filter((t) => {
     const d = new Date(t.date);
     d.setHours(0, 0, 0, 0);
     return d.getTime() >= today.getTime();
   });
 
-  const pastTournaments = tournaments.filter((t) => {
+  const pastTournaments = tournaments?.filter((t) => {
     const d = new Date(t.date);
     d.setHours(0, 0, 0, 0);
     return d.getTime() < today.getTime();
@@ -58,7 +42,7 @@ export default function Tournaments() {
     };
     reFetchAll();
   }, []);
-  const TournamentCard = ({ tournament }: { tournament: Tournament }) => (
+  const TournamentCard = ({ tournament }: { tournament: TournamentTypes }) => (
     <Link
       href={`/tournaments/${tournament.id}`}
       className="bg-[#131720] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-colors group"
@@ -72,12 +56,6 @@ export default function Tournaments() {
           unoptimized
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 "
         />
-        {tournament.status === "live" && (
-          <div className="absolute top-3 right-3 px-2.5 py-1 bg-red-500 text-white text-xs font-medium rounded-md flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
-            LIVE
-          </div>
-        )}
       </div>
       <div className="p-4">
         <h3 className="text-sm font-medium text-gray-100 mb-3">

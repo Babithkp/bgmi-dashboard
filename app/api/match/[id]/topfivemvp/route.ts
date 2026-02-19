@@ -11,12 +11,22 @@ export async function GET(
         const match = await prisma.match.findUnique({
             where: { id },
             include: {
-                playerPerformances: {
+                group: {
+                    select: {
+                        name: true
+                    }
+                },
+                matchTeam: {
                     include: {
-                        player: true,
+                        playerPerformances: true,
                     },
                 },
-                winTeam: true,
+                winTeam: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
             },
         });
 
@@ -27,25 +37,39 @@ export async function GET(
             );
         }
 
-        if (match.playerPerformances.length === 0) {
+        const performances = match.matchTeam.flatMap(
+            (team) => team.playerPerformances
+        );
+
+        if (!performances.length) {
             return NextResponse.json(
                 { error: "No performances found" },
                 { status: 404 }
             );
         }
 
-        const sorted = [...match.playerPerformances].sort(
+        const sorted = [...performances].sort(
             (a, b) => b.totalPoints - a.totalPoints
+        );
+        const teamMap = new Map(
+            match.matchTeam.map(team => [
+                team.id,
+                {
+                    name: team.name,
+                    image: team.image,
+                },
+            ])
         );
 
         const top5 = sorted.slice(0, 5);
-
         return NextResponse.json({
-            matchId: match.id,
             matchName: match.name,
+            groupName: match.group.name,
             players: top5.map((p, index) => ({
                 rank: index + 1,
-                player: p.player,
+                name: p.name,
+                image: p.image,
+                team: teamMap.get(p.matchTeamId!),
                 placementPoints: p.placementPoints,
                 finishesPoints: p.finishesPoints,
                 totalPoints: p.totalPoints,
@@ -63,3 +87,4 @@ export async function GET(
         );
     }
 }
+

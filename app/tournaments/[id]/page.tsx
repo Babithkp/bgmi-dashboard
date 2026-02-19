@@ -1,58 +1,13 @@
-"use client";import React, { useEffect, useState } from "react";
+"use client";
+import { useEffect, useState } from "react";
 import { ArrowLeft, User } from "lucide-react";
 import Link from "next/link";
-import { TeamFormData } from "@/app/teams-players/page";
 import Details from "@/app/components/tournmants/Details";
 import LiveData from "@/app/components/tournmants/LiveData";
 import Links from "@/app/components/tournmants/Links";
+import { MatchTypes, TeamTypes, TournamentTypes } from "@/lib/types";
 
 type Tab = "details" | "liveData" | "links";
-
-interface Player {
-  id: string;
-  name: string;
-  gameName: string;
-  image: string;
-  placementPoints: number;
-  finishesPoints: number;
-  team?: TeamFormData | null;
-}
-
-
-export interface Match {
-  id: string;
-  name: string;
-  status: "upcoming" | "Live" | "Completed";
-  day: Date;
-  playerPerformances: PlayerPerformance[];
-  winTeam?: TeamFormData;
-  group: string;
-}
-
-interface PlayerPerformance {
-  id: string;
-  player: Player;
-  placementPoints: number;
-  finishesPoints: number;
-  totalPoints: number;
-  status: string;
-  teamContribution: number;
-}
-
-export interface Tournament {
-  id: string;
-  name: string;
-  image: string;
-  date: Date;
-  time: string;
-  teamTournaments: TeamTournaments[];
-}
-
-interface TeamTournaments {
-  id: string;
-  team: TeamFormData;
-  group: string;
-}
 
 export default function TournamentDetail({
   params,
@@ -60,10 +15,10 @@ export default function TournamentDetail({
   params: Promise<{ id: string }>;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("details");
-  const [teamList, setTeams] = useState<TeamFormData[]>([]);
-  const [tournament, setTournament] = useState<Tournament>();
-  const [allMatchData, setAllMatchData] = useState<Match[]>();
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);  
+  const [teamList, setTeams] = useState<TeamTypes[]>([]);
+  const [tournament, setTournament] = useState<TournamentTypes>();
+  const [allMatchData, setAllMatchData] = useState<MatchTypes[]>();
+  const [selectedMatch, setSelectedMatch] = useState<MatchTypes | null>(null);
 
   async function fetchTeams() {
     const response = await fetch("/api/team");
@@ -74,7 +29,7 @@ export default function TournamentDetail({
   async function fetchMatches(id: string) {
     const response = await fetch(`/api/tournament/match/${id}`);
     const data = await response.json();
-    setAllMatchData(data);
+    setAllMatchData(data);    
     setSelectedMatch(data[0]);
   }
 
@@ -91,6 +46,8 @@ export default function TournamentDetail({
       const response = await fetch(`/api/tournament/${id}`);
       if (!response.ok) return;
       const data = await response.json();
+      console.log(data)
+      
       setTournament(data);
       fetchMatches(id);
       fetchTeams();
