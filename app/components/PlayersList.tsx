@@ -1,14 +1,14 @@
 "use client";import Image from "next/image";
-import { PlayerFormData, TeamFormData } from "../teams-players/page";
 import { Edit, Eye, Filter, Plus, Search, Trash2 } from "lucide-react";
 import DeleteModel from "./DeleteModel";
 import { useState } from "react";
 import AddPlayerModal from "./AddPlayerModal";
+import { PlayerTypes, TeamTypes } from "@/lib/types";
 
 interface PlayersListProps {
-  players: PlayerFormData[];
+  players: PlayerTypes[];
   reFetchAll: () => void;
-  Teams: TeamFormData[];
+  Teams: TeamTypes[];
 }
 
 export default function PlayersList({
@@ -18,7 +18,7 @@ export default function PlayersList({
 }: PlayersListProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [player, setPlayer] = useState<PlayerFormData | null>(null);
+  const [player, setPlayer] = useState<PlayerTypes | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
 

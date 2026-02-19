@@ -1,22 +1,22 @@
 import { createTeamAction } from '@/lib/action';
+import { TeamTypes } from '@/lib/types';
 import { X, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { TeamFormData } from '../teams-players/page';
 
 interface AddTeamModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: () => void;
-  team: TeamFormData | null;
+  team: TeamTypes | null;
 }
 
 
 
 export default function AddTeamModal({ isOpen, onClose, onSubmit, team }: AddTeamModalProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [teamData, setTeamData] = useState<TeamFormData>({
+  const [teamData, setTeamData] = useState<TeamTypes>({
     id: '',
     name: '',
     image: '',

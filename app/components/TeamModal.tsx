@@ -1,10 +1,11 @@
-import Image from "next/image";import { TeamFormData } from "../teams-players/page";
+import Image from "next/image";
 import { X } from "lucide-react";
+import { TeamTypes } from "@/lib/types";
 
 interface AddPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  teamList: TeamFormData | null;
+  teamList: TeamTypes | null;
 }
 
 export default function TeamModal({

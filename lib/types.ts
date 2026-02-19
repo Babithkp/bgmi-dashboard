@@ -10,7 +10,7 @@ export interface TeamTypes {
     id: string;
     name: string;
     image: string;
-    createdAt: Date;
+    createdAt: string;
     players: PlayerTypes[];
 }
 

@@ -1,20 +1,20 @@
 "use client";
 import Image from "next/image";
-import { TeamFormData } from "../teams-players/page";
 import { Edit, Eye, Filter, Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
 import DeleteModel from "./DeleteModel";
 import AddTeamModal from "./AddTeamModal";
 import TeamModal from "./TeamModal";
+import { TeamTypes } from "@/lib/types";
 
 type TeamListProbs = {
-  Teams: TeamFormData[];
+  Teams: TeamTypes[];
   reFetchAll: () => void;
 };
 
 export default function TeamList({ Teams, reFetchAll }: TeamListProbs) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [team, setTeam] = useState<TeamFormData | null>(null);
+  const [team, setTeam] = useState<TeamTypes | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddTeamModalOpen, setIsAddTeamModalOpen] = useState(false);

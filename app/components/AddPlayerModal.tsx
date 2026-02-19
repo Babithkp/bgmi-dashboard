@@ -1,16 +1,16 @@
 import { createPlayerAction } from '@/lib/action';
+import { PlayerTypes, TeamTypes } from '@/lib/types';
 import { X, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { PlayerFormData, TeamFormData } from '../teams-players/page';
 import { toast } from 'sonner';
 
 interface AddPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  teamList: TeamFormData[];
+  teamList: TeamTypes[];
   onSubmit: () => void;
-  player: PlayerFormData | null;
+  player: PlayerTypes | null;
 }
 
 

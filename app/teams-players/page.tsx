@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import TeamList from "../components/TeamList";
 import PlayersList from "../components/PlayersList";
-import { TeamTypes } from "@/lib/types";
+import { PlayerTypes, TeamTypes } from "@/lib/types";
 
 type Tab = "players" | "teams";
 
@@ -12,7 +12,7 @@ export default function TeamsPlayers() {
   const [activeTab, setActiveTab] = useState<Tab>("players");
 
   const [Teams, setTeams] = useState<TeamTypes[]>([]);
-  const [players, setPlayers] = useState<TeamTypes[]>([]);
+  const [players, setPlayers] = useState<PlayerTypes[]>([]);
 
   async function fetchTeams() {
     const response = await fetch("/api/team");
