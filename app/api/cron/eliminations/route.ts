@@ -10,7 +10,7 @@ export async function runEliminationCron() {
 
         const matches = await prisma.match.findMany({
             where: {
-                status: "Completed",
+                status: "Live",
                 updatedAt: { lt: twoMinutesAgo },
             },
             select: { id: true },

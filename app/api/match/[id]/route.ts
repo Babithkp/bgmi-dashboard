@@ -7,6 +7,8 @@ type TeamStats = {
   totalPoints: number;
   aliveCount: number;
   deadCount: number;
+  teamImage: string;
+  status: string | null;
 };
 
 
@@ -30,6 +32,12 @@ export async function GET(
             playerPerformances: true,
           },
         },
+        winTeam: {
+          select: {
+            name: true,
+            image: true,
+          },
+        },
       },
     });
 
@@ -50,11 +58,14 @@ export async function GET(
       );
     }
 
+    // ✅ TEAM STATS (unchanged)
     const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
       (acc, team) => {
         if (!acc[team.id]) {
           acc[team.id] = {
             teamName: team.name,
+            teamImage: team.image,
+            status: team.status,
             totalFinishPoints: 0,
             totalPoints: 0,
             aliveCount: 0,
@@ -83,24 +94,52 @@ export async function GET(
       .map((team, index) => ({
         teamRank: index + 1,
         teamName: team.teamName,
+        teamImage: team.teamImage,
         teamTotalFinishPoints: team.totalFinishPoints,
         teamTotalPoints: team.totalPoints,
         aliveCount: team.aliveCount,
         deadCount: team.deadCount,
+        status: team.status,
+      }));
+
+    // ✅ ELIMINATIONS (NEW)
+    const eliminations = rankedTeams
+      .filter((team) =>
+        match.matchTeam.find(
+          (mt) => mt.name === team.teamName && mt.status === "Eliminated"
+        )
+      )
+      .map((team) => ({
+        rank: team.teamRank,
+        teamName: team.teamName,
+        teamImage: team.teamImage,
+        totalFinishPoints: team.teamTotalFinishPoints,
+        totalPoints: team.teamTotalPoints,
       }));
 
     return NextResponse.json({
       matchName: match.name,
-      groupName: match.group?.name ?? "Unknown Group",
+      groupName: match.group?.name,
       status: match.status,
+
+      winner: match.winTeam
+        ? {
+            name: match.winTeam.name,
+            image: match.winTeam.image,
+          }
+        : null,
+
       teams: rankedTeams,
+
+      // 👇 NEW FIELD
+      eliminations: eliminations.length ? eliminations : null,
     });
 
   } catch (error) {
     console.error("TEAM RANK ERROR:", error);
 
     return NextResponse.json(
-      { error: "Failed to fetch team rankings" },
+      { error: "Failed to fetch match data" },
       { status: 500 }
     );
   }
@@ -200,13 +239,13 @@ export async function PATCH(
           (sum, p) => sum + p.finishesPoints,
           0
         );
-    
+
         return teamPlayers.map((p) => {
           const contribution =
             totalFinishes > 0
               ? (p.finishesPoints / totalFinishes) * 100
               : 0;
-    
+
           return prisma.matchPlayerPerformance.update({
             where: { id: p.id },
             data: {
@@ -220,7 +259,33 @@ export async function PATCH(
         });
       })
     );
-    
+
+    // Step 1: Get affected team IDs
+    const affectedTeamIds = Object.keys(performancesByTeam);
+
+    const teamsToEliminate = await prisma.matchTeam.findMany({
+      where: {
+        id: { in: affectedTeamIds },
+        status: {
+          notIn: ["Eliminated", "Displayed"],
+        },
+        playerPerformances: {
+          none: {
+            status: "Alive",
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    await prisma.$transaction(
+      teamsToEliminate.map((team) =>
+        prisma.matchTeam.update({
+          where: { id: team.id },
+          data: { status: "Eliminated" },
+        })
+      )
+    );
 
     if (winningTeamId) {
       await prisma.match.update({
