@@ -4,9 +4,9 @@ import { NextResponse } from "next/server";
 export async function POST(
     request: Request,
 ) {
-    const { id } = await request.json()
+    const { teamId } = await request.json()
     await prisma.matchTeam.update({
-        where: { id },
+        where: { id: teamId },
         data: { status: "Displayed" },
     })
     return NextResponse.json({ success: true })
