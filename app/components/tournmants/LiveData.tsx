@@ -1,5 +1,4 @@
-"use client";
-import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
+"use client";import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteModel from "../DeleteModel";
@@ -37,7 +36,6 @@ export default function LiveData({
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
-  
 
   const handleDeleteMatch = async () => {
     setIsLoading(true);
@@ -106,7 +104,7 @@ export default function LiveData({
 
       if (!acc[teamName]) acc[teamName] = [];
 
-      acc[teamName].push(...team.playerPerformances); 
+      acc[teamName].push(...team.playerPerformances);
       return acc;
     },
     {} as Record<string, MatchPlayerPerformanceTypes[]>,
@@ -200,7 +198,6 @@ export default function LiveData({
     }
   };
 
-
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setWinningTeamId(null);
@@ -240,7 +237,6 @@ export default function LiveData({
               Create Match
             </button>
           </div>
-          
 
           <div className="flex items-center gap-3 justify-between">
             <h2 className="text-sm font-medium text-gray-400">Select Match</h2>
@@ -294,7 +290,7 @@ export default function LiveData({
         )}
       </div>
 
-      {Array.isArray(allMatchData) && allMatchData.length > 0 && (
+      {selectedMatch && (
         <div className="bg-[#131720] border border-gray-800 rounded-xl p-6">
           <div className=" mb-4 flex flex-col gap-4">
             <div className="flex gap-4 items-start w-full justify-between">

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { qstash } from "@/lib/qstash";
 import { NextResponse } from "next/server";
 
 type TeamStats = {
@@ -286,6 +287,14 @@ export async function PATCH(
         })
       )
     );
+
+    teamsToEliminate.forEach(async (team) => {
+      await qstash.publishJSON({
+        url: "https://bgmi-dashboard-rust.vercel.app/api/team/display",
+        body: { teamId: team.id },
+        delay: 120, // seconds (2 minutes)
+      });
+    });
 
     if (winningTeamId) {
       await prisma.match.update({
