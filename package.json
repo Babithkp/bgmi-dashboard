@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "npx prisma generate && next build",
     "start": "next start",
-    "lint": "eslint",
-    "worker:elimination": "bun workers/eliminationWorker.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.989.0",
