@@ -78,7 +78,9 @@ model MatchTeam {
   group              String                   @db.ObjectId
   name               String
   image              String
-  status             String?                  @default("Live")
+  status             String?                  @default("Alive")
+  placementPoints    Int                      @default(0)
+  totalPoints        Int                      @default(0)
   match              Match?                   @relation(fields: [matchId], references: [id], onDelete: Cascade)
   matchId            String?                  @db.ObjectId
   playerPerformances MatchPlayerPerformance[]
@@ -91,9 +93,7 @@ model MatchPlayerPerformance {
   id               String     @id @default(auto()) @map("_id") @db.ObjectId
   name             String
   image            String
-  placementPoints  Int        @default(0)
   finishesPoints   Int        @default(0)
-  totalPoints      Int        @default(0)
   status           String     @default("Alive")
   teamContribution Int        @default(0)
   matchTeam        MatchTeam? @relation(fields: [matchTeamId], references: [id], onDelete: Cascade)

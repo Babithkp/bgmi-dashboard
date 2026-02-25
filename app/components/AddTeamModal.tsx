@@ -1,9 +1,7 @@
-import { createTeamAction } from '@/lib/action';
-import { TeamTypes } from '@/lib/types';
-import { X, Upload } from 'lucide-react';
-import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { TeamTypes } from "@/lib/types";import { X, Upload } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface AddTeamModalProps {
   isOpen: boolean;
@@ -12,22 +10,43 @@ interface AddTeamModalProps {
   team: TeamTypes | null;
 }
 
-
-
-export default function AddTeamModal({ isOpen, onClose, onSubmit, team }: AddTeamModalProps) {
+export default function AddTeamModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  team,
+}: AddTeamModalProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [teamData, setTeamData] = useState<TeamTypes>({
-    id: '',
-    name: '',
-    image: '',
-    createdAt: '',
-    players: []
+    id: "",
+    name: "",
+    image: "",
+    createdAt: "",
+    players: [],
   });
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
-
-
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const body = new FormData();
+    body.append("name", teamData.name);
+    if (imageFile) {
+      body.append("image", imageFile);
+    }
+    body.append("team", teamData?.id);
+    body.append("editImage", teamData?.image);
+    await fetch("/api/team", {
+      method: "POST",
+      body: body,
+    });
+    setPreviewUrl("");
+    setIsLoading(false);
+    toast.success("Team created successfully");
+    onSubmit();
+    onClose();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,35 +65,27 @@ export default function AddTeamModal({ isOpen, onClose, onSubmit, team }: AddTea
     if (team === null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTeamData({
-        id: '',
-        name: '',
-        image: '',
-        createdAt: '',
-        players: []
+        id: "",
+        name: "",
+        image: "",
+        createdAt: "",
+        players: [],
       });
-      setPreviewUrl('');
+      setPreviewUrl("");
       return;
     }
 
     const nextName = team.name;
     const nextImage = team.image;
 
-    setTeamData(prev =>
+    setTeamData((prev) =>
       prev.name === nextName && prev.image === nextImage
         ? prev
-        : { ...prev, name: nextName, image: nextImage }
+        : { ...prev, name: nextName, image: nextImage },
     );
 
-    setPreviewUrl(prev =>
-      prev === nextImage ? prev : nextImage
-    );
-
+    setPreviewUrl((prev) => (prev === nextImage ? prev : nextImage));
   }, [team]);
-
-
-
-
-
 
   if (!isOpen) return null;
 
@@ -97,15 +108,7 @@ export default function AddTeamModal({ isOpen, onClose, onSubmit, team }: AddTea
         </div>
 
         {/* Form */}
-        <form action={async (formData) => {
-          setIsLoading(true)
-          await createTeamAction(formData)
-          setPreviewUrl('')
-          setIsLoading(false)
-          toast.success('Team created successfully')
-          onSubmit()
-          onClose()
-        }} className="p-6 space-y-4">
+        <form className="p-6 space-y-4" onSubmit={handleSubmit}>
           <input type="hidden" name="team" value={team?.id} />
           <input type="hidden" name="editImage" value={team?.image} />
           <div>
@@ -116,7 +119,9 @@ export default function AddTeamModal({ isOpen, onClose, onSubmit, team }: AddTea
               type="text"
               name="name"
               value={teamData.name}
-              onChange={(e) => setTeamData({ ...teamData, name: e.target.value })}
+              onChange={(e) =>
+                setTeamData({ ...teamData, name: e.target.value })
+              }
               required
               placeholder="Enter team name"
               className="w-full px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-700"
@@ -163,9 +168,13 @@ export default function AddTeamModal({ isOpen, onClose, onSubmit, team }: AddTea
                   />
                 </label>
                 {imageFile && (
-                  <p className="mt-1.5 text-xs text-gray-500">{imageFile.name}</p>
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    {imageFile.name}
+                  </p>
                 )}
-                <p className="mt-1.5 text-xs text-gray-600">JPG, PNG or SVG (Max 5MB)</p>
+                <p className="mt-1.5 text-xs text-gray-600">
+                  JPG, PNG or SVG (Max 5MB)
+                </p>
               </div>
             </div>
           </div>
@@ -185,7 +194,7 @@ export default function AddTeamModal({ isOpen, onClose, onSubmit, team }: AddTea
               disabled={isLoading}
               className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
-              {isLoading ? 'Creating...' : 'Add Team'}
+              {isLoading ? "Creating..." : "Add Team"}
             </button>
           </div>
         </form>

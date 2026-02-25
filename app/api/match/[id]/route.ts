@@ -68,7 +68,7 @@ export async function GET(
             teamImage: team.image,
             status: team.status,
             totalFinishPoints: 0,
-            totalPoints: 0,
+            totalPoints: team.totalPoints,
             aliveCount: 0,
             deadCount: 0,
           };
@@ -76,7 +76,6 @@ export async function GET(
 
         team.playerPerformances.forEach((perf) => {
           acc[team.id].totalFinishPoints += perf.finishesPoints;
-          acc[team.id].totalPoints += perf.totalPoints;
 
           if (perf.status === "Alive") {
             acc[team.id].aliveCount += 1;
@@ -103,21 +102,6 @@ export async function GET(
         status: team.status,
       }));
 
-    // ✅ ELIMINATIONS (NEW)
-    const eliminations = rankedTeams
-      .filter((team) =>
-        match.matchTeam.find(
-          (mt) => mt.name === team.teamName && mt.status === "Eliminated"
-        )
-      )
-      .map((team) => ({
-        rank: team.teamRank,
-        teamName: team.teamName,
-        teamImage: team.teamImage,
-        totalFinishPoints: team.teamTotalFinishPoints,
-        totalPoints: team.teamTotalPoints,
-      }));
-
     return NextResponse.json({
       matchName: match.name,
       groupName: match.group?.name,
@@ -125,15 +109,13 @@ export async function GET(
 
       winner: match.winTeam
         ? {
-            name: match.winTeam.name,
-            image: match.winTeam.image,
-          }
+          name: match.winTeam.name,
+          image: match.winTeam.image,
+        }
         : null,
 
       teams: rankedTeams,
 
-      // 👇 NEW FIELD
-      eliminations: eliminations.length ? eliminations : null,
     });
 
   } catch (error) {
@@ -150,10 +132,13 @@ export async function GET(
 interface Performance {
   id: string;
   status: "Alive" | "Dead";
-  placementPoints: number;
-  finishesPoints: number;
   matchTeamId: string | null;
+  finishesPoints: number;
 }
+type TeamPlacement = {
+  teamId: string;
+  placementPoints: number;
+};
 
 
 export async function PATCH(
@@ -163,7 +148,12 @@ export async function PATCH(
   try {
     const { id } = await context.params;
 
-    const { performances, winningTeamId } = await req.json();
+    const { performances, winningTeamId, teamPlacements } =
+      await req.json() as {
+        performances: Performance[];
+        winningTeamId?: string;
+        teamPlacements: TeamPlacement[];
+      };
 
     if (!performances?.length) {
       return NextResponse.json(
@@ -235,25 +225,45 @@ export async function PATCH(
     }, {});
 
     await prisma.$transaction(
-      Object.values(performancesByTeam).flatMap((teamPlayers) => {
+      Object.entries(performancesByTeam).map(([teamId, teamPlayers]) => {
+
+        const rawPlacement =
+          teamPlacements.find(t => t.teamId === teamId)?.placementPoints;
+
+        const safePlacement = isNaN(Number(rawPlacement))
+          ? 0
+          : Number(rawPlacement);
+
+        const totalFinishes = teamPlayers.reduce(
+          (sum, p) => sum + Number(p.finishesPoints ?? 0),
+          0
+        );
+        const totalPoints = safePlacement + totalFinishes;
+        return prisma.matchTeam.update({
+          where: { id: teamId },
+          data: {
+            placementPoints: Math.max(safePlacement, 0),
+            totalPoints: Math.max(totalPoints, 0),
+          },
+        });
+      })
+    );
+    await prisma.$transaction(
+      Object.entries(performancesByTeam).flatMap(([, teamPlayers]) => {
         const totalFinishes = teamPlayers.reduce(
           (sum, p) => sum + p.finishesPoints,
           0
         );
-
         return teamPlayers.map((p) => {
           const contribution =
             totalFinishes > 0
               ? (p.finishesPoints / totalFinishes) * 100
               : 0;
-
           return prisma.matchPlayerPerformance.update({
             where: { id: p.id },
             data: {
               status: p.status,
-              placementPoints: p.placementPoints,
               finishesPoints: p.finishesPoints,
-              totalPoints: p.placementPoints + p.finishesPoints,
               teamContribution: Number(contribution.toFixed(2)),
             },
           });
@@ -290,9 +300,9 @@ export async function PATCH(
 
     teamsToEliminate.forEach(async (team) => {
       await qstash.publishJSON({
-        url: "https://bgmi-dashboard-rust.vercel.app/api/team/display",
+        url: "https://bgmi-dashboard-rust.vercel.app/api/match/elimination",
         body: { teamId: team.id },
-        delay: 120, // seconds (2 minutes)
+        delay: 60,
       });
     });
 

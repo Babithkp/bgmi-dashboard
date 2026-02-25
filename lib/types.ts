@@ -62,6 +62,8 @@ export interface MatchTeamTypes {
     name: string;
     image: string;
     status: string;
+    placementPoints: number;
+    totalPoints: number;
     group: string;
     match?: MatchTypes | null;
     playerPerformances: MatchPlayerPerformanceTypes[];
@@ -71,9 +73,7 @@ export interface MatchPlayerPerformanceTypes {
     id: string;
     name: string;
     image: string;
-    placementPoints: number;
     finishesPoints: number;
-    totalPoints: number;
     status: string;
     teamContribution: number;
     matchTeam?: MatchTeamTypes | null;

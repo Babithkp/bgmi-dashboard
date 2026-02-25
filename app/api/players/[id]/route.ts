@@ -17,12 +17,13 @@ export async function DELETE(
                 { status: 404 }
             )
         }
-        if (player) {
+        if (player.image) {
             await deleteFromS3(player.image)
-            await prisma.player.delete({
-                where: { id }
-            })
         }
+        await prisma.player.delete({
+            where: { id }
+        })
+        return NextResponse.json({ success: true })
     } catch (error) {
         console.error("DELETE PLAYER ERROR:", error)
         return NextResponse.json(

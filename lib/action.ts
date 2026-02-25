@@ -16,7 +16,7 @@ export async function createPlayerAction(formData: FormData) {
     if (image instanceof File && image.size > 0) {
         const buffer = Buffer.from(await image.arrayBuffer())
         const ext = image.name.split(".").pop() || "jpg"
-        const key = `dashboard/players/${name}-${Date.now()}.${ext}`
+        const key = `dashboard/players/${name.trim()}-${Date.now()}.${ext}`
 
         imageUrl = await uploadToS3(buffer, key, image.type)
     }
@@ -66,40 +66,4 @@ export async function createPlayerAction(formData: FormData) {
         }
     }
 }
-
-
-export async function createTeamAction(formData: FormData) {
-    const name = formData.get('name') as string
-    const teamId = formData.get('team') as string
-    const image = formData.get('image')
-    const editImage = formData.get('editImage') as string
-
-    let imageUrl = editImage || ""
-
-    if (image instanceof File && image.size > 0) {
-        const buffer = Buffer.from(await image.arrayBuffer())
-        const ext = image.name.split(".").pop() || "jpg"
-        const key = `dashboard/teams/${name}-${Date.now()}.${ext}`
-
-        imageUrl = await uploadToS3(buffer, key, image.type)
-    }
-
-    if (!teamId) {
-        await prisma.team.create({
-            data: {
-                name,
-                image: imageUrl,
-            }
-        })
-    } else {
-        await prisma.team.update({
-            where: { id: teamId },
-            data: {
-                name,
-                image: imageUrl,
-            }
-        })
-    }
-}
-
 

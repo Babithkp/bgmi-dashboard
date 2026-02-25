@@ -1,4 +1,5 @@
-"use client";import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
+"use client";
+import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteModel from "../DeleteModel";
@@ -15,7 +16,9 @@ interface LiveDataProps {
   refetchAll: () => void;
   tournament: TournamentTypes | undefined;
 }
-
+type PlayerWithTeamPoints = MatchPlayerPerformanceTypes & {
+  teamPlacementPoints?: number;
+};
 export default function LiveData({
   allMatchData,
   setSelectedMatch,
@@ -30,6 +33,43 @@ export default function LiveData({
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const groupedByTeam = selectedMatch?.matchTeam?.reduce(
+    (acc, matchTeam) => {
+      const teamName = matchTeam.name ?? "Unknown Team";
+
+      if (!acc[teamName]) {
+        acc[teamName] = {
+          teamId: matchTeam.id,
+          placementPoints: matchTeam.placementPoints,
+          players: [],
+        };
+      }
+
+      acc[teamName].players.push(
+        ...matchTeam.playerPerformances.map((player) => ({
+          ...player,
+          teamPlacementPoints: matchTeam.placementPoints,
+        })),
+      );
+
+      return acc;
+    },
+    {} as Record<
+      string,
+      {
+        teamId: string;
+        placementPoints: number;
+        players: PlayerWithTeamPoints[];
+      }
+    >,
+  );
+
+  const teamPlacements =
+    selectedMatch?.matchTeam?.map((team) => ({
+      teamId: team.id,
+      placementPoints: team.placementPoints,
+    })) ?? [];
 
   const copyToClipboard = (url: string, id: number) => {
     navigator.clipboard.writeText(url);
@@ -68,8 +108,8 @@ export default function LiveData({
 
   const handlePointsChange = (
     performanceId: string,
-    field: "placementPoints" | "finishesPoints",
-    value: string,
+    field: "finishesPoints",
+    delta: number,
   ) => {
     setSelectedMatch((prev) => {
       if (!prev) return prev;
@@ -81,16 +121,12 @@ export default function LiveData({
           playerPerformances: team.playerPerformances.map((p) => {
             if (p.id !== performanceId) return p;
 
-            const numericValue = Number(value);
-
-            const updated = {
-              ...p,
-              [field]: numericValue,
-            };
+            const newFinishes = Math.max(p.finishesPoints + delta, 0);
 
             return {
-              ...updated,
-              totalPoints: updated.placementPoints + updated.finishesPoints,
+              ...p,
+              finishesPoints: newFinishes,
+              totalPoints: team.placementPoints + newFinishes,
             };
           }),
         })),
@@ -98,17 +134,36 @@ export default function LiveData({
     });
   };
 
-  const groupedByTeam = selectedMatch?.matchTeam?.reduce(
-    (acc, team) => {
-      const teamName = team.name ?? "Unknown Team";
+  const handleTeamPlacementChange = (teamId: string, delta: number) => {
+    setSelectedMatch((prev) => {
+      if (!prev) return prev;
 
-      if (!acc[teamName]) acc[teamName] = [];
+      return {
+        ...prev,
+        matchTeam: prev.matchTeam?.map((team) => {
+          if (team.id !== teamId) return team;
 
-      acc[teamName].push(...team.playerPerformances);
-      return acc;
-    },
-    {} as Record<string, MatchPlayerPerformanceTypes[]>,
-  );
+          const newPlacement = Math.max((team.placementPoints ?? 0) + delta, 0);
+
+          return {
+            ...team,
+            placementPoints: newPlacement,
+            totalPoints:
+              newPlacement +
+              team.playerPerformances.reduce(
+                (sum, p) => sum + p.finishesPoints,
+                0,
+              ),
+
+            playerPerformances: team.playerPerformances.map((p) => ({
+              ...p,
+            })),
+          };
+        }),
+      };
+    });
+  };
+
   const handleCreateMatch = async () => {
     if (!newmatchTitle.trim()) {
       toast.error("Enter match title");
@@ -147,7 +202,6 @@ export default function LiveData({
         team.playerPerformances.map((p) => ({
           id: p.id,
           status: p.status,
-          placementPoints: p.placementPoints,
           finishesPoints: p.finishesPoints,
         })),
       ) ?? [];
@@ -157,7 +211,8 @@ export default function LiveData({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          performances: performances,
+          performances,
+          teamPlacements,
           winningTeamId,
         }),
       });
@@ -284,9 +339,7 @@ export default function LiveData({
           </div>
         </div>
         {selectedMatch?.status === "Completed" && (
-          <div className="text-xs text-green-400 mb-2">
-            🔒 Match Completed — Scores Locked
-          </div>
+          <div className="text-xs text-green-400 mb-2">🔒 Match Completed</div>
         )}
       </div>
 
@@ -476,97 +529,133 @@ export default function LiveData({
             </thead>
             <tbody className="divide-y divide-gray-800">
               {groupedByTeam &&
-                Object.entries(groupedByTeam).map(
-                  ([teamName, performances]) => (
-                    <React.Fragment key={teamName}>
+                Object.entries(groupedByTeam).map(([teamName, teamData]) => {
+                  const totalFinishes = teamData.players.reduce(
+                    (sum, p) => sum + p.finishesPoints,
+                    0,
+                  );
+
+                  const totalPoints = totalFinishes + teamData.placementPoints;
+
+                  return (
+                    // ✅ IMPORTANT FIX
+                    <React.Fragment key={teamData.teamId}>
                       <tr className="bg-[#0f1320]">
                         <td
-                          colSpan={5}
+                          colSpan={2}
                           className="px-4 py-3 text-sm font-medium text-blue-400 border-y border-gray-800"
                         >
                           {teamName}
                         </td>
+
+                        {/* ✅ Placement Points */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() =>
+                                handleTeamPlacementChange(teamData.teamId, -1)
+                              }
+                              disabled={selectedMatch?.status === "Completed"}
+                              className="px-2 py-1 bg-red-500/10 text-red-400 rounded"
+                            >
+                              −
+                            </button>
+
+                            <span className="text-sm text-gray-300 w-6 text-center">
+                              {teamData.placementPoints}
+                            </span>
+
+                            <button
+                              onClick={() =>
+                                handleTeamPlacementChange(teamData.teamId, 1)
+                              }
+                              disabled={selectedMatch?.status === "Completed"}
+                              className="px-2 py-1 bg-green-500/10 text-green-400 rounded"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3  text-sm text-gray-400 ">
+                          {totalFinishes}
+                        </td>
+
+                        <td className="px-4 py-3 ">
+                          <span className="text-sm font-medium text-blue-400">
+                            {totalPoints}
+                          </span>
+                        </td>
                       </tr>
 
-                      {performances.map((performance) => {
-                        const totalPoints =
-                          performance.placementPoints +
-                          performance.finishesPoints;
+                      {teamData.players.map((performance) => (
+                        <tr key={performance.id}>
+                          <td className="px-4 py-3 text-sm text-gray-300">
+                            {performance.name}
+                          </td>
 
-                        return (
-                          <tr key={performance.id}>
-                            <td className="px-4 py-3">
-                              <span className="text-sm text-gray-300">
-                                {performance.name}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-3">
-                              <select
-                                value={performance.status}
-                                onChange={(e) =>
-                                  handleStatusChange(
-                                    performance.id,
-                                    e.target.value as "Alive" | "Dead",
-                                  )
-                                }
-                                disabled={selectedMatch?.status === "Completed"}
-                                className={`w-28 px-3 py-2 border border-gray-800 rounded-lg text-sm font-medium focus:outline-none focus:border-gray-700 ${
+                          <td className="px-4 py-3">
+                            <select
+                              value={performance.status}
+                              onChange={(e) =>
+                                handleStatusChange(
+                                  performance.id,
+                                  e.target.value as "Alive" | "Dead",
+                                )
+                              }
+                              className={`w-28 px-3 py-2 border border-gray-800 rounded-lg text-sm font-medium 
+                                focus:outline-none focus:border-gray-700 ${
                                   performance.status === "Alive"
                                     ? "bg-green-500/10 text-green-400 border-green-500/20"
                                     : "bg-red-500/10 text-red-400 border-red-500/20"
                                 }`}
-                              >
-                                <option value="Alive">Alive</option>
-                                <option value="Dead">Dead</option>
-                              </select>
-                            </td>
+                            >
+                              <option value="Alive">Alive</option>
+                              <option value="Dead">Dead</option>
+                            </select>
+                          </td>
 
-                            <td className="px-4 py-3">
-                              <input
-                                type="number"
-                                value={performance.placementPoints}
-                                min={0}
-                                onChange={(e) =>
-                                  handlePointsChange(
-                                    performance.id,
-                                    "placementPoints",
-                                    e.target.value,
-                                  )
-                                }
-                                disabled={selectedMatch?.status === "Completed"}
-                                className="w-24 px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300"
-                              />
-                            </td>
+                          <td></td>
 
-                            <td className="px-4 py-3">
-                              <input
-                                type="number"
-                                value={performance.finishesPoints}
-                                min={0}
-                                onChange={(e) =>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() =>
                                   handlePointsChange(
                                     performance.id,
                                     "finishesPoints",
-                                    e.target.value,
+                                    -1,
                                   )
                                 }
-                                disabled={selectedMatch?.status === "Completed"}
-                                className="w-24 px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300"
-                              />
-                            </td>
+                                className="px-2 py-1 bg-red-500/10 text-red-400 rounded"
+                              >
+                                −
+                              </button>
 
-                            <td className="px-4 py-3">
-                              <span className="text-sm font-medium text-blue-400">
-                                {totalPoints}
+                              <span className="text-sm text-gray-300 w-6 text-center">
+                                {performance.finishesPoints}
                               </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+
+                              <button
+                                onClick={() =>
+                                  handlePointsChange(
+                                    performance.id,
+                                    "finishesPoints",
+                                    1,
+                                  )
+                                }
+                                className="px-2 py-1 bg-green-500/10 text-green-400 rounded"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+                          <td></td>
+                        </tr>
+                      ))}
                     </React.Fragment>
-                  ),
-                )}
+                  );
+                })}
             </tbody>
           </table>
           <div className="w-full flex items-center gap-4 justify-end">

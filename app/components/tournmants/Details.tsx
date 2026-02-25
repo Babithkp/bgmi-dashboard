@@ -110,7 +110,7 @@ export default function Details({
 
   const handleSave = async () => {
     if (!tournament?.id) return;
-
+    setIsLoading(true);
     const body = new FormData();
     body.append("name", editData.name ?? tournament.name);
     body.append(
@@ -136,7 +136,7 @@ export default function Details({
     }
     const updated: TournamentTypes = await res.json();
     setTournament(updated);
-
+    setIsLoading(false);
     toast.success("Tournament updated");
   };
 
@@ -334,9 +334,16 @@ export default function Details({
           className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors
        flex items-center gap-2"
           onClick={handleSave}
+          disabled={isLoading}
         >
-          <Save className="w-4 h-4" />
-          Save Changes
+          {isLoading ? (
+            "Loading..."
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Save Changes
+            </>
+          )}
         </button>
       </div>
       <DeleteModel

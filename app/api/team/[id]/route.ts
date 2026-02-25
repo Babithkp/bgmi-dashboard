@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { revalidatePath } from "next/cache"
 import { deleteFromS3 } from "@/lib/fileUpload"
 
 export async function DELETE(
@@ -18,13 +17,11 @@ export async function DELETE(
                 { status: 404 }
             )
         }
-        if (team) {
-            await deleteFromS3(team.image)
-            await prisma.team.delete({
-                where: { id }
-            })
-        }
-        revalidatePath("/teams-players")
+        await deleteFromS3(team.image)
+        await prisma.team.delete({
+            where: { id }
+        })
+        return NextResponse.json({ success: true })
     } catch (error) {
         console.error("DELETE TEAM ERROR:", error)
         return NextResponse.json(

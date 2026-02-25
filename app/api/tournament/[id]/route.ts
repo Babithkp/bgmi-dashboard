@@ -214,20 +214,31 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
+
     const tournament = await prisma.tournament.findUnique({
       where: { id },
     });
+
     if (!tournament) {
       return NextResponse.json(
         { error: "Tournament not found" },
         { status: 404 }
       );
     }
+
+    await prisma.match.updateMany({
+      where: { tournamentId: id },
+      data: { winnerId: null },
+    });
+
     await deleteFromS3(tournament.image);
+
     await prisma.tournament.delete({
       where: { id },
     });
+
     return NextResponse.json({ success: true });
+
   } catch (error) {
     console.error(error);
     return NextResponse.json(

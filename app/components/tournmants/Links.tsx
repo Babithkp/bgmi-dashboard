@@ -15,6 +15,11 @@ export default function Links({
 
   const mockLinks = [
     {
+      id: 3,
+      name: "Elimination API",
+      url: `${window.location.origin}/api/match/elimination`,
+    },
+    {
       id: 4,
       name: "Overall top MVP",
       url: `${window.location.origin}/api/tournament/${tournamentId}/mvp`,
