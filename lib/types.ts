@@ -20,6 +20,11 @@ export interface TournamentTypes {
     image: string;
     date: Date;
     time: string;
+    allDead?: string | null;
+    oneAlive?: string | null;
+    twoAlive?: string | null;
+    threeAlive?: string | null;
+    fourAlive?: string | null;
     matches: MatchTypes[];
     groups: GroupTypes[];
 }
@@ -57,7 +62,7 @@ export interface MatchTeamTypes {
     group: string;
     match?: MatchTypes | null;
     playerPerformances: MatchPlayerPerformanceTypes[];
-  }
+}
 
 export interface MatchPlayerPerformanceTypes {
     id: string;

@@ -1,5 +1,4 @@
-"use client";
-import { Save, Trash2, Upload } from "lucide-react";
+"use client";import { Save, Trash2, Upload } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -21,6 +20,19 @@ interface DetailsProps {
   setTournament: (t: TournamentTypes) => void;
 }
 
+type StateFileKey =
+  | "allDeadFile"
+  | "oneAliveFile"
+  | "twoAliveFile"
+  | "threeAliveFile"
+  | "fourAliveFile";
+
+type StatePreviewKey =
+  | "allDead"
+  | "oneAlive"
+  | "twoAlive"
+  | "threeAlive"
+  | "fourAlive";
 export default function Details({
   teamList,
   tournament,
@@ -35,8 +47,40 @@ export default function Details({
   const [editData, setEditData] = useState({
     name: "",
     thumbnailFile: null as File | null,
+
+    allDeadFile: null as File | null,
+    oneAliveFile: null as File | null,
+    twoAliveFile: null as File | null,
+    threeAliveFile: null as File | null,
+    fourAliveFile: null as File | null,
   });
+  const [statePreview, setStatePreview] = useState({
+    allDead: "",
+    oneAlive: "",
+    twoAlive: "",
+    threeAlive: "",
+    fourAlive: "",
+  });
+
   const router = useRouter();
+
+  const handleStateImageChange = (
+    field: StateFileKey,
+    previewField: StatePreviewKey,
+    file: File | null,
+  ) => {
+    if (!file) return;
+
+    setEditData((prev) => ({
+      ...prev,
+      [field]: file,
+    }));
+
+    setStatePreview((prev) => ({
+      ...prev,
+      [previewField]: URL.createObjectURL(file),
+    }));
+  };
 
   const handleDeleteMatch = async () => {
     setIsLoading(true);
@@ -126,6 +170,13 @@ export default function Details({
     if (editData.thumbnailFile) {
       body.append("thumbnail", editData.thumbnailFile);
     }
+    if (editData.allDeadFile) body.append("allDead", editData.allDeadFile);
+    if (editData.oneAliveFile) body.append("oneAlive", editData.oneAliveFile);
+    if (editData.twoAliveFile) body.append("twoAlive", editData.twoAliveFile);
+    if (editData.threeAliveFile)
+      body.append("threeAlive", editData.threeAliveFile);
+    if (editData.fourAliveFile)
+      body.append("fourAlive", editData.fourAliveFile);
     const res = await fetch(`/api/tournament/${tournament.id}`, {
       method: "PATCH",
       body,
@@ -238,6 +289,90 @@ export default function Details({
                   JPG, PNG or GIF (Recommended: 800x400px)
                 </p>
               </div>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-3">
+              Tournament State Images
+            </label>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                {
+                  label: "All Dead",
+                  fileKey: "allDeadFile",
+                  previewKey: "allDead",
+                  existing: tournament?.allDead,
+                },
+                {
+                  label: "One Alive",
+                  fileKey: "oneAliveFile",
+                  previewKey: "oneAlive",
+                  existing: tournament?.oneAlive,
+                },
+                {
+                  label: "Two Alive",
+                  fileKey: "twoAliveFile",
+                  previewKey: "twoAlive",
+                  existing: tournament?.twoAlive,
+                },
+                {
+                  label: "Three Alive",
+                  fileKey: "threeAliveFile",
+                  previewKey: "threeAlive",
+                  existing: tournament?.threeAlive,
+                },
+                {
+                  label: "Four Alive",
+                  fileKey: "fourAliveFile",
+                  previewKey: "fourAlive",
+                  existing: tournament?.fourAlive,
+                },
+              ].map((img) => (
+                <div key={img.label} className="space-y-2">
+                  <p className="text-xs text-gray-400">{img.label} Image</p>
+
+                  {(statePreview[img.previewKey as keyof typeof statePreview] ||
+                    img.existing) && (
+                    <Image
+                      src={
+                        statePreview[
+                          img.previewKey as keyof typeof statePreview
+                        ] ||
+                        img.existing ||
+                        ""
+                      }
+                      alt={img.label}
+                      width={300}
+                      height={120}
+                      unoptimized
+                      className="w-full h-24 object-cover rounded-lg border border-gray-800"
+                    />
+                  )}
+
+                  <label className="cursor-pointer">
+                    <div className="px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-xs text-gray-300 hover:bg-gray-800/50 transition-colors inline-flex items-center gap-2">
+                      <Upload className="w-3 h-3" />
+                      {editData[img.fileKey as keyof typeof editData]
+                        ? "Change Image"
+                        : "Upload Image"}
+                    </div>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) =>
+                        handleStateImageChange(
+                          img.fileKey as StateFileKey,
+                          img.previewKey as StatePreviewKey,
+                          e.target.files?.[0] ?? null,
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+              ))}
             </div>
           </div>
         </div>

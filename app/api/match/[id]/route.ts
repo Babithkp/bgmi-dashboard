@@ -12,6 +12,25 @@ type TeamStats = {
   status: string | null;
 };
 
+function resolveTeamStatusImage(
+  aliveCount: number,
+  tournament: {
+    allDead?: string | null;
+    oneAlive?: string | null;
+    twoAlive?: string | null;
+    threeAlive?: string | null;
+    fourAlive?: string | null;
+  } | null
+) {
+  if (!tournament) return null;
+
+  if (aliveCount === 0) return tournament.allDead;
+  if (aliveCount === 1) return tournament.oneAlive;
+  if (aliveCount === 2) return tournament.twoAlive;
+  if (aliveCount === 3) return tournament.threeAlive;
+
+  return tournament.fourAlive;
+}
 
 export async function GET(
   req: Request,
@@ -24,8 +43,15 @@ export async function GET(
       where: { id },
       include: {
         group: {
+          select: { name: true },
+        },
+        tournament: {
           select: {
-            name: true,
+            allDead: true,
+            oneAlive: true,
+            twoAlive: true,
+            threeAlive: true,
+            fourAlive: true,
           },
         },
         matchTeam: {
@@ -100,22 +126,17 @@ export async function GET(
         aliveCount: team.aliveCount,
         deadCount: team.deadCount,
         status: team.status,
+        aliveimage: resolveTeamStatusImage(
+          team.aliveCount,
+          match.tournament
+        ),
       }));
 
     return NextResponse.json({
       matchName: match.name,
       groupName: match.group?.name,
       status: match.status,
-
-      winner: match.winTeam
-        ? {
-          name: match.winTeam.name,
-          image: match.winTeam.image,
-        }
-        : null,
-
       teams: rankedTeams,
-
     });
 
   } catch (error) {

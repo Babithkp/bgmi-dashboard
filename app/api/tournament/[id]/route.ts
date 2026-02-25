@@ -1,5 +1,6 @@
 import { deleteFromS3, uploadToS3 } from "@/lib/fileUpload";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -13,12 +14,12 @@ export async function GET(
       where: { id },
       include: {
         groups: {
-          select:{
-            id:true,
-            name:true,
-            groupTeamTournament:{
-              select:{
-                team:true
+          select: {
+            id: true,
+            name: true,
+            groupTeamTournament: {
+              select: {
+                team: true
               }
             }
           }
@@ -43,6 +44,27 @@ type groupstype = {
   teamNames: string[];
 };
 
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === "P2010" ||
+        error.message.includes("TransientTransactionError"))
+    ) {
+      if (retries > 0) {
+        await new Promise(res => setTimeout(res, 300));
+        return withRetry(fn, retries - 1);
+      }
+    }
+    throw error;
+  }
+}
+
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -54,6 +76,23 @@ export async function PATCH(
     const groupsRaw = formData.get("groups");
     const nameRaw = formData.get("name");
     const thumbnail = formData.get("thumbnail") as File | null;
+
+    const allDeadFile = formData.get("allDead") as File | null;
+    const oneAliveFile = formData.get("oneAlive") as File | null;
+    const twoAliveFile = formData.get("twoAlive") as File | null;
+    const threeAliveFile = formData.get("threeAlive") as File | null;
+    const fourAliveFile = formData.get("fourAlive") as File | null;
+
+
+    const uploadIfFile = async (value: FormDataEntryValue | null, path: string) => {
+      if (!(value instanceof File) || value.size === 0) return undefined;
+
+      const buffer = Buffer.from(await value.arrayBuffer());
+      const ext = value.name.split(".").pop();
+      const key = `${path}/${Date.now()}.${ext}`;
+
+      return uploadToS3(buffer, key, value.type);
+    };
 
     if (!groupsRaw || typeof groupsRaw !== "string") {
       return NextResponse.json({ error: "Invalid groups payload" }, { status: 400 });
@@ -72,107 +111,126 @@ export async function PATCH(
       return NextResponse.json({ error: "Malformed groups JSON" }, { status: 400 });
     }
 
-    let imageUrl: string | undefined;
 
-    // ✅ Upload outside transaction
-    if (thumbnail && thumbnail.size > 0) {
-      const buffer = Buffer.from(await thumbnail.arrayBuffer());
-      const ext = thumbnail.name.split(".").pop();
-      const key = `dashboard/tournaments/${Date.now()}.${ext}`;
+    const imageUrl = await uploadIfFile(
+      thumbnail,
+      "dashboard/tournaments"
+    );
 
-      imageUrl = await uploadToS3(buffer, key, thumbnail.type);
-    }
+    const allDeadUrl = await uploadIfFile(
+      allDeadFile,
+      "dashboard/tournaments/states"
+    );
 
-    await prisma.$transaction(async (tx) => {
-      // 1️⃣ Update Tournament
-      await tx.tournament.update({
-        where: { id },
-        data: {
-          ...(name && { name }),
-          ...(imageUrl && { image: imageUrl }),
-        },
-      });
+    const oneAliveUrl = await uploadIfFile(
+      oneAliveFile,
+      "dashboard/tournaments/states"
+    );
 
-      if (!groups.length) return;
+    const twoAliveUrl = await uploadIfFile(
+      twoAliveFile,
+      "dashboard/tournaments/states"
+    );
 
-      // 2️⃣ Fetch Existing Groups
-      const existingGroups = await tx.group.findMany({
-        where: { tournamentId: id },
-        include: {
-          matches: true,
-          groupTeamTournament: true,
-        },
-      });
+    const threeAliveUrl = await uploadIfFile(
+      threeAliveFile,
+      "dashboard/tournaments/states"
+    );
 
-      const incomingGroupNames = groups.map(g => g.name.trim());
+    const fourAliveUrl = await uploadIfFile(
+      fourAliveFile,
+      "dashboard/tournaments/states"
+    );
 
-      // 3️⃣ Delete ONLY groups with NO matches & NOT in incoming
-      await tx.group.deleteMany({
-        where: {
-          tournamentId: id,
-          name: { notIn: incomingGroupNames },
-          matches: { none: {} },
-        },
-      });
+    await withRetry(() =>
+      prisma.$transaction(async (tx) => {
+        await tx.tournament.update({
+          where: { id },
+          data: {
+            ...(name && { name }),
+            ...(imageUrl && { image: imageUrl }),
+            ...(allDeadUrl && { allDead: allDeadUrl }),
+            ...(oneAliveUrl && { oneAlive: oneAliveUrl }),
+            ...(twoAliveUrl && { twoAlive: twoAliveUrl }),
+            ...(threeAliveUrl && { threeAlive: threeAliveUrl }),
+            ...(fourAliveUrl && { fourAlive: fourAliveUrl }),
+          },
+        });
 
-      // 4️⃣ Upsert Groups
-      for (const group of groups) {
-        if (!group.name?.trim()) continue;
+        if (!groups.length) return;
 
-        const groupName = group.name.trim();
+        const incomingGroupNames = groups.map(g => g.name.trim());
 
-        let dbGroup = existingGroups.find(g => g.name === groupName);
+        await tx.group.deleteMany({
+          where: {
+            tournamentId: id,
+            name: { notIn: incomingGroupNames },
+            matches: { none: {} },
+          },
+        });
 
-        if (!dbGroup) {
-          dbGroup = await tx.group.create({
-            data: {
-              name: groupName,
-              tournamentId: id,
-            },
+        for (const group of groups) {
+          if (!group.name?.trim()) continue;
+
+          const groupName = group.name.trim();
+
+          let dbGroup = await tx.group.findFirst({
+            where: { tournamentId: id, name: groupName },
             include: {
               groupTeamTournament: true,
               matches: true,
             },
           });
-        }
 
-        if (!group.teamNames?.length) continue;
+          if (!dbGroup) {
+            dbGroup = await tx.group.create({
+              data: {
+                name: groupName,
+                tournamentId: id,
+              },
+              include: {
+                groupTeamTournament: true,
+                matches: true,
+              },
+            });
+          }
 
-        // 5️⃣ Resolve Teams
-        const teams = await tx.team.findMany({
-          where: {
-            name: { in: group.teamNames },
-          },
-        });
+          if (!group.teamNames?.length) continue;
 
-        const existingAssignments = dbGroup.groupTeamTournament;
-        const existingTeamIds = existingAssignments.map(t => t.teamId);
-        const incomingTeamIds = teams.map(t => t.id);
-
-        // 6️⃣ Add new assignments
-        const teamsToAdd = teams.filter(t => !existingTeamIds.includes(t.id));
-
-        if (teamsToAdd.length) {
-          await tx.groupTeamTournament.createMany({
-            data: teamsToAdd.map(team => ({
-              groupId: dbGroup.id,
-              tournamentId: id,
-              teamId: team.id,
-            })),
-          });
-        }
-
-        // 7️⃣ Remove assignments ONLY if group has NO matches
-        if (dbGroup.matches.length === 0) {
-          await tx.groupTeamTournament.deleteMany({
+          const teams = await tx.team.findMany({
             where: {
-              groupId: dbGroup.id,
-              teamId: { notIn: incomingTeamIds },
+              name: { in: group.teamNames },
             },
           });
+
+          const existingTeamIds = dbGroup.groupTeamTournament.map(t => t.teamId);
+          const incomingTeamIds = teams.map(t => t.id);
+
+          const teamsToAdd = teams.filter(
+            t => !existingTeamIds.includes(t.id)
+          );
+
+          if (teamsToAdd.length) {
+            await tx.groupTeamTournament.createMany({
+              data: teamsToAdd.map(team => ({
+                groupId: dbGroup.id,
+                tournamentId: id,
+                teamId: team.id,
+              })),
+            });
+          }
+
+          if (dbGroup.matches.length === 0) {
+            await tx.groupTeamTournament.deleteMany({
+              where: {
+                groupId: dbGroup.id,
+                teamId: { notIn: incomingTeamIds },
+              },
+            });
+          }
         }
-      }
-    });
+      })
+    );
 
     // ✅ Query outside transaction
     const updatedTournament = await prisma.tournament.findUnique({

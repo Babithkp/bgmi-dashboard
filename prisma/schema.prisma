@@ -31,6 +31,11 @@ model Tournament {
   image               String
   date                DateTime
   time                String
+  allDead             String?
+  oneAlive            String?
+  twoAlive            String?
+  threeAlive          String?
+  fourAlive           String?
   matches             Match[]
   groups              Group[]
   groupTeamTournament GroupTeamTournament[]
