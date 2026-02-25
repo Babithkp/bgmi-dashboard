@@ -38,20 +38,10 @@ export interface GroupTeamTournamentTypes {
     team?: TeamTypes;
 }
 
-export interface MatchTeamTypes {
-    id: string;
-    group: string;
-    name: string;
-    image: string;
-    status: string;
-    matchId?: | null;
-    match?: MatchTypes | null;
-    playerPerformances: MatchPlayerPerformanceTypes[];
-}
 export interface MatchTypes {
     id: string;
     name: string;
-    status?: string | null;
+    status: string;
     group?: GroupTypes;
     tournament?: TournamentTypes | null;
     winTeam?: MatchTeamTypes | null;
@@ -61,13 +51,13 @@ export interface MatchTeamTypes {
     id: string;
     name: string;
     image: string;
-    status: string;
+    status?: string | null;
     placementPoints: number;
     totalPoints: number;
     group: string;
     match?: MatchTypes | null;
     playerPerformances: MatchPlayerPerformanceTypes[];
-}
+  }
 
 export interface MatchPlayerPerformanceTypes {
     id: string;

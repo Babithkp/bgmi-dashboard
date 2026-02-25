@@ -40,7 +40,13 @@ export async function GET(
 
     const allPerformances = tournament.matches.flatMap(match =>
       match.matchTeam.flatMap(team =>
-        team.playerPerformances
+        team.playerPerformances.map(perf => ({
+          name: perf.name,
+          image: perf.image,
+          finishesPoints: perf.finishesPoints,
+          placementPoints: team.placementPoints,
+          totalPoints: team.placementPoints + perf.finishesPoints,
+        }))
       )
     );
 

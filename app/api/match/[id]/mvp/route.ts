@@ -7,6 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
+
     const match = await prisma.match.findUnique({
       where: { id },
       include: {
@@ -25,26 +26,42 @@ export async function GET(
       );
     }
 
-    const performances = match.matchTeam.flatMap(
-      (team) => team.playerPerformances
+    const performancesWithTotals = match.matchTeam.flatMap(team =>
+      team.playerPerformances.map(player => ({
+        ...player,
+        teamName: team.name,
+        teamImage: team.image,
+        placementPoints: team.placementPoints,
+        totalPoints: team.placementPoints + player.finishesPoints,
+      }))
     );
-    
 
-    const mvp = performances.reduce((best, current) =>
+    if (!performancesWithTotals.length) {
+      return NextResponse.json(
+        { error: "No performances found" },
+        { status: 404 }
+      );
+    }
+
+    const mvp = performancesWithTotals.reduce((best, current) =>
       current.totalPoints > best.totalPoints ? current : best
     );
 
-
     return NextResponse.json({
       matchName: match.name,
+
       player: {
         name: mvp.name,
         image: mvp.image,
-        placementPoints: mvp.placementPoints,
         finishesPoints: mvp.finishesPoints,
-        totalPoints: mvp.totalPoints,
+        placementPoints: mvp.placementPoints, // ✅ from team
+        totalPoints: mvp.totalPoints,         // ✅ computed
         status: mvp.status,
         teamContribution: mvp.teamContribution,
+
+        // ✅ BONUS (nice for UI)
+        teamName: mvp.teamName,
+        teamImage: mvp.teamImage,
       },
     });
 
