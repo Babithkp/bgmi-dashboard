@@ -12,7 +12,7 @@ export async function POST() {
 export async function GET() {
     try {
         const totalAliveTeams = await prisma.matchTeam.count({
-            where: { status: "Alive" },
+            where: { status: "Live" },
         });
         const teams = await prisma.matchTeam.findMany({
             where: { status: "Eliminated" },
