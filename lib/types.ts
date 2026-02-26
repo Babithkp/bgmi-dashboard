@@ -3,6 +3,7 @@ export interface PlayerTypes {
     name: string;
     gameName: string;
     image: string;
+    order: number;
     team?: TeamTypes | null;
 }
 

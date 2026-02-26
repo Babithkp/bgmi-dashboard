@@ -137,6 +137,7 @@ export async function GET(
       groupName: match.group?.name,
       status: match.status,
       teams: rankedTeams,
+      
     });
 
   } catch (error) {

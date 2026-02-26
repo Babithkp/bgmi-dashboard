@@ -24,6 +24,8 @@ export default function TournamentDetail({
     const response = await fetch("/api/team");
     const data = await response.json();
     setTeams(data);
+    
+    
   }
 
   async function fetchMatches(id: string) {
@@ -31,6 +33,7 @@ export default function TournamentDetail({
     const data = await response.json();
     setAllMatchData(data);    
     setSelectedMatch(data[0]);
+    console.log(data)
   }
 
   async function refetchAll() {
@@ -46,7 +49,7 @@ export default function TournamentDetail({
       const response = await fetch(`/api/tournament/${id}`);
       if (!response.ok) return;
       const data = await response.json();
-      console.log(data)
+      // console.log(data)
       
       setTournament(data);
       fetchMatches(id);

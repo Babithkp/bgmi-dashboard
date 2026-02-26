@@ -13,6 +13,12 @@ export async function GET(
                 tournamentId: id,
             },
             include: {
+                winTeam:{
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
                 matchTeam: {
                     include: {
                         playerPerformances: true

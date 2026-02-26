@@ -1,5 +1,4 @@
-"use client";
-import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
+"use client";import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteModel from "../DeleteModel";
@@ -493,7 +492,6 @@ export default function LiveData({
               <button
                 className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 onClick={() => setIsDeleteModalOpen(true)}
-                disabled={selectedMatch?.status === "Completed"}
               >
                 <Trash2 className="w-4 h-4 text-red-400" />
               </button>
@@ -538,7 +536,6 @@ export default function LiveData({
                   const totalPoints = totalFinishes + teamData.placementPoints;
 
                   return (
-                    // ✅ IMPORTANT FIX
                     <React.Fragment key={teamData.teamId}>
                       <tr className="bg-[#0f1320]">
                         <td
@@ -548,14 +545,12 @@ export default function LiveData({
                           {teamName}
                         </td>
 
-                        {/* ✅ Placement Points */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() =>
                                 handleTeamPlacementChange(teamData.teamId, -1)
                               }
-                              disabled={selectedMatch?.status === "Completed"}
                               className="px-2 py-1 bg-red-500/10 text-red-400 rounded"
                             >
                               −
@@ -569,7 +564,6 @@ export default function LiveData({
                               onClick={() =>
                                 handleTeamPlacementChange(teamData.teamId, 1)
                               }
-                              disabled={selectedMatch?.status === "Completed"}
                               className="px-2 py-1 bg-green-500/10 text-green-400 rounded"
                             >
                               +
@@ -660,8 +654,7 @@ export default function LiveData({
           </table>
           <div className="w-full flex items-center gap-4 justify-end">
             <select
-              value={selectedMatch?.winTeam?.id || winningTeamId || ""}
-              disabled={selectedMatch?.status === "Completed"}
+              value={winningTeamId || selectedMatch?.winTeam?.id  || ""}
               onChange={(e) => setWinningTeamId(e.target.value)}
               className="px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm  text-gray-300 focus:outline-none focus:border-gray-700"
             >
@@ -676,7 +669,7 @@ export default function LiveData({
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium
               transition-colors flex items-center gap-2"
               onClick={handleSaveScores}
-              disabled={isLoading || selectedMatch?.status === "Completed"}
+              disabled={isLoading}
             >
               {isLoading ? (
                 "Submit..."

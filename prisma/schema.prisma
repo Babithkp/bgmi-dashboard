@@ -12,6 +12,7 @@ model Player {
   name     String
   gameName String
   image    String
+  order    Int
   team     Team?   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   teamId   String? @db.ObjectId
 }

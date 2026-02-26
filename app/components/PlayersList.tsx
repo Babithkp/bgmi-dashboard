@@ -1,8 +1,7 @@
 "use client";import Image from "next/image";
-import { Edit, Eye, Filter, Plus, Search, Trash2 } from "lucide-react";
+import { Edit, Eye, Filter,  Search, Trash2 } from "lucide-react";
 import DeleteModel from "./DeleteModel";
 import { useState } from "react";
-import AddPlayerModal from "./AddPlayerModal";
 import { PlayerTypes, TeamTypes } from "@/lib/types";
 
 interface PlayersListProps {
@@ -14,13 +13,11 @@ interface PlayersListProps {
 export default function PlayersList({
   players,
   reFetchAll,
-  Teams,
 }: PlayersListProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [player, setPlayer] = useState<PlayerTypes | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
 
   const onClose = () => setIsOpen(false);
 
@@ -39,16 +36,7 @@ export default function PlayersList({
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="text-sm font-medium text-gray-300">All Players</h2>
-          <button
-            onClick={() => {
-              setPlayer(null);
-              setIsAddPlayerModalOpen(true);
-            }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Player
-          </button>
+
         </div>
 
         {/* Search and Filter */}
@@ -124,7 +112,6 @@ export default function PlayersList({
                     <button
                       className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
                       onClick={() => {
-                        setIsAddPlayerModalOpen(true);
                         setPlayer(player);
                       }}
                     >
@@ -151,14 +138,6 @@ export default function PlayersList({
         onClose={onClose}
         deleteFunction={handleDelete}
         isLoading={isLoading}
-      />
-      {/* Add Player Modal */}
-      <AddPlayerModal
-        isOpen={isAddPlayerModalOpen}
-        onClose={() => setIsAddPlayerModalOpen(false)}
-        teamList={Teams}
-        onSubmit={reFetchAll}
-        player={player}
       />
     </>
   );
