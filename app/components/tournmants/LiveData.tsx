@@ -253,9 +253,23 @@ export default function LiveData({
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (!isLoading) handleSaveScores();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleSaveScores]);
+
+  useEffect(() => {
     setWinningTeamId(null);
   }, [selectedMatch]);
+
   return (
     <div className="space-y-6">
       <div className="bg-[#131720] border border-gray-800 rounded-xl p-4">
@@ -532,9 +546,7 @@ export default function LiveData({
                     (sum, p) => sum + p.finishesPoints,
                     0,
                   );
-
                   const totalPoints = totalFinishes + teamData.placementPoints;
-
                   return (
                     <React.Fragment key={teamData.teamId}>
                       <tr className="bg-[#0f1320]">
@@ -544,7 +556,6 @@ export default function LiveData({
                         >
                           {teamName}
                         </td>
-
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <button
@@ -555,11 +566,9 @@ export default function LiveData({
                             >
                               −
                             </button>
-
                             <span className="text-sm text-gray-300 w-6 text-center">
                               {teamData.placementPoints}
                             </span>
-
                             <button
                               onClick={() =>
                                 handleTeamPlacementChange(teamData.teamId, 1)
@@ -589,24 +598,24 @@ export default function LiveData({
                           </td>
 
                           <td className="px-4 py-3">
-                            <select
-                              value={performance.status}
-                              onChange={(e) =>
+                            <button
+                              onClick={() =>
                                 handleStatusChange(
                                   performance.id,
-                                  e.target.value as "Alive" | "Dead",
+                                  performance.status === "Alive"
+                                    ? "Dead"
+                                    : "Alive",
                                 )
                               }
-                              className={`w-28 px-3 py-2 border border-gray-800 rounded-lg text-sm font-medium 
-                                focus:outline-none focus:border-gray-700 ${
-                                  performance.status === "Alive"
-                                    ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                    : "bg-red-500/10 text-red-400 border-red-500/20"
-                                }`}
+                              className={`relative w-14 h-7 flex items-center rounded-full transition-colors duration-300
+                              ${performance.status === "Alive" ? "bg-green-500/20" : "bg-red-500/20"}`}
                             >
-                              <option value="Alive">Alive</option>
-                              <option value="Dead">Dead</option>
-                            </select>
+                              <div
+                                className={`absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300
+                                ${performance.status === "Alive" ? "translate-x-7" : "translate-x-0"}`}
+                              />
+                              <span className="sr-only">Toggle Status</span>
+                            </button>
                           </td>
 
                           <td></td>
@@ -654,7 +663,7 @@ export default function LiveData({
           </table>
           <div className="w-full flex items-center gap-4 justify-end">
             <select
-              value={winningTeamId || selectedMatch?.winTeam?.id  || ""}
+              value={winningTeamId || selectedMatch?.winTeam?.id || ""}
               onChange={(e) => setWinningTeamId(e.target.value)}
               className="px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm  text-gray-300 focus:outline-none focus:border-gray-700"
             >

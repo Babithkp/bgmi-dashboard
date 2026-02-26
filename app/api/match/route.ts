@@ -1,6 +1,161 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+
+
+type TeamStats = {
+  teamName: string;
+  totalFinishPoints: number;
+  totalPoints: number;
+  aliveCount: number;
+  deadCount: number;
+  teamImage: string;
+  status: string | null;
+};
+
+function resolveTeamStatusImage(
+  aliveCount: number,
+  tournament: {
+    allDead?: string | null;
+    oneAlive?: string | null;
+    twoAlive?: string | null;
+    threeAlive?: string | null;
+    fourAlive?: string | null;
+  } | null
+) {
+  if (!tournament) return null;
+
+  if (aliveCount === 0) return tournament.allDead;
+  if (aliveCount === 1) return tournament.oneAlive;
+  if (aliveCount === 2) return tournament.twoAlive;
+  if (aliveCount === 3) return tournament.threeAlive;
+
+  return tournament.fourAlive;
+}
+
+export async function GET() {
+  try {
+    const match = await prisma.match.findFirst({
+      where: {
+        status: "Live",
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+      include: {
+        group: {
+          select: { name: true },
+        },
+        tournament: {
+          select: {
+            allDead: true,
+            oneAlive: true,
+            twoAlive: true,
+            threeAlive: true,
+            fourAlive: true,
+          },
+        },
+        matchTeam: {
+          include: {
+            playerPerformances: true,
+          },
+        },
+        winTeam: {
+          select: {
+            name: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    if (!match) {
+      return NextResponse.json(
+        { error: "Match not found" },
+        { status: 404 }
+      );
+    }
+
+    const allPerformances =
+      match.matchTeam.flatMap((team) => team.playerPerformances);
+
+    if (!allPerformances.length) {
+      return NextResponse.json(
+        { error: "No performances found" },
+        { status: 404 }
+      );
+    }
+
+    // ✅ TEAM STATS (unchanged)
+    const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
+      (acc, team) => {
+        if (!acc[team.id]) {
+          acc[team.id] = {
+            teamName: team.name,
+            teamImage: team.image,
+            status: team.status,
+            totalFinishPoints: 0,
+            totalPoints: team.totalPoints,
+            aliveCount: 0,
+            deadCount: 0,
+          };
+        }
+
+        team.playerPerformances.forEach((perf) => {
+          acc[team.id].totalFinishPoints += perf.finishesPoints;
+
+          if (perf.status === "Alive") {
+            acc[team.id].aliveCount += 1;
+          } else if (perf.status === "Dead") {
+            acc[team.id].deadCount += 1;
+          }
+        });
+
+        return acc;
+      },
+      {}
+    );
+
+    const rankedTeams = Object.values(teamStats)
+      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .map((team, index) => ({
+        teamRank: index + 1,
+        teamName: team.teamName,
+        teamImage: team.teamImage,
+        teamTotalFinishPoints: team.totalFinishPoints,
+        teamTotalPoints: team.totalPoints,
+        aliveCount: team.aliveCount,
+        deadCount: team.deadCount,
+        status: team.status,
+        aliveimage: resolveTeamStatusImage(
+          team.aliveCount,
+          match.tournament
+        ),
+      }));
+
+    return NextResponse.json({
+      matchName: match.name,
+      groupName: match.group?.name,
+      status: match.status,
+      teams: rankedTeams,
+
+    });
+
+  } catch (error) {
+    console.error("TEAM RANK ERROR:", error);
+
+    return NextResponse.json(
+      { error: "Failed to fetch match data" },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+
+
+
 export async function POST(req: Request) {
   try {
     const { title, tournamentId, groupId } = await req.json();
@@ -12,7 +167,7 @@ export async function POST(req: Request) {
     if (!tournamentId) {
       return NextResponse.json({ error: "Tournament required" }, { status: 400 });
     }
-    
+
     if (!groupId) {
       return NextResponse.json({ error: "Group required" }, { status: 400 });
     }
@@ -25,7 +180,16 @@ export async function POST(req: Request) {
       include: {
         team: {
           include: {
-            players: true,
+            players: {
+              where: {
+                order: {
+                  lte: 3,
+                },
+              },
+              orderBy: {
+                order: "asc",
+              },
+            },
           },
         },
       },
@@ -51,7 +215,7 @@ export async function POST(req: Request) {
       data: groupTeams.map(({ team }) => ({
         name: team.name,
         image: team.image,
-        group: groupId, // snapshot label OK
+        group: groupId,
         status: "Live",
         matchId: match.id,
       })),

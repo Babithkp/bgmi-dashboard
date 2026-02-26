@@ -1,5 +1,4 @@
-import Image from "next/image";
-import { X } from "lucide-react";
+import Image from "next/image";import { X } from "lucide-react";
 import { TeamTypes } from "@/lib/types";
 
 interface AddPlayerModalProps {
@@ -37,7 +36,7 @@ export default function TeamModal({
         <div className="p-6 space-y-4">
           {teamList?.players.map((player, i) => (
             <div
-              key={player.id}
+              key={i}
               className={`flex items-center gap-3 ${i != 0 && "border-t pt-4 border-gray-700"}`}
             >
               <Image

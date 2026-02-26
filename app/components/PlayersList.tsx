@@ -1,8 +1,9 @@
 "use client";import Image from "next/image";
-import { Edit, Eye, Filter,  Search, Trash2 } from "lucide-react";
+import { Edit, Eye, Filter, Search, Trash2 } from "lucide-react";
 import DeleteModel from "./DeleteModel";
 import { useState } from "react";
 import { PlayerTypes, TeamTypes } from "@/lib/types";
+import AddPlayerModal from "./AddPlayerModel";
 
 interface PlayersListProps {
   players: PlayerTypes[];
@@ -13,11 +14,13 @@ interface PlayersListProps {
 export default function PlayersList({
   players,
   reFetchAll,
+  Teams,
 }: PlayersListProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [player, setPlayer] = useState<PlayerTypes | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
 
   const onClose = () => setIsOpen(false);
 
@@ -36,7 +39,6 @@ export default function PlayersList({
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="text-sm font-medium text-gray-300">All Players</h2>
-
         </div>
 
         {/* Search and Filter */}
@@ -113,6 +115,7 @@ export default function PlayersList({
                       className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
                       onClick={() => {
                         setPlayer(player);
+                        setIsAddPlayerModalOpen(true);
                       }}
                     >
                       <Edit className="w-4 h-4" />
@@ -133,6 +136,13 @@ export default function PlayersList({
           </tbody>
         </table>
       </div>
+      <AddPlayerModal
+        isOpen={isAddPlayerModalOpen}
+        onClose={()=>setIsAddPlayerModalOpen(false)}
+        teamList={Teams}
+        player={player}
+        onSubmit={reFetchAll}
+      />
       <DeleteModel
         isOpen={isOpen}
         onClose={onClose}

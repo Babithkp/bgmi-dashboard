@@ -1,5 +1,4 @@
-"use client";
-import { User } from "lucide-react";
+"use client";import { User } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import TeamList from "../components/TeamList";
@@ -27,18 +26,16 @@ export default function TeamsPlayers() {
   }
 
   const reFetchAll = async () => {
-    await fetchTeams();
-    await fetchPlayers();
+    await Promise.all([fetchTeams(), fetchPlayers()]);
   };
 
   useEffect(() => {
-    const loadTeams = async () => {
-      await fetchTeams();
-      await fetchPlayers();
+    const loadData = async () => {
+      await Promise.all([fetchTeams(), fetchPlayers()]);
     };
-    loadTeams();
-  }, []);
 
+    loadData();
+  }, []);
   return (
     <>
       {/* Header */}

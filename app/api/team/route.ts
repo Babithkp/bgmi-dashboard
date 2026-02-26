@@ -1,7 +1,5 @@
 import { uploadToS3 } from "@/lib/fileUpload";
 import { prisma } from "@/lib/prisma";
-import { PlayerTypes } from "@/lib/types";
-import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -9,10 +7,7 @@ export async function GET() {
         const teams = await prisma.team.findMany({
             include: {
                 players: {
-                    select: {
-                        name: true,
-                        image: true,
-                    }
+                    select: { id: true, name: true, image: true, gameName: true, order: true }
                 }
             }
         });
@@ -23,28 +18,6 @@ export async function GET() {
     }
 }
 
-async function withRetry<T>(
-    fn: () => Promise<T>,
-    retries = 3
-): Promise<T> {
-    try {
-        return await fn();
-    } catch (error: unknown) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            (error.code === "P2010" ||
-                error.message.includes("TransientTransactionError"))
-        ) {
-            if (retries > 0) {
-                console.warn(`Retrying DB transaction... (${retries})`);
-                await new Promise(res => setTimeout(res, 300));
-                return withRetry(fn, retries - 1);
-            }
-        }
-
-        throw error;
-    }
-}
 
 export async function POST(request: Request) {
     try {
@@ -53,75 +26,59 @@ export async function POST(request: Request) {
         const name = formData.get("name") as string;
         const teamId = formData.get("teamId") as string | null;
 
-        const logo = formData.get("logo");
+        const logo = formData.get("logo") as File | null;
         const editLogo = formData.get("editLogo") as string | null;
+        const playersRaw = formData.get("players") as string;
 
-        const playersRaw = formData.get("players") as string | null;
+        console.log(playersRaw);
+
 
         if (!name?.trim()) {
             return NextResponse.json(
-                { error: "Team name is required" },
+                { error: "Team name required" },
                 { status: 400 }
             );
         }
 
         let imageUrl = editLogo || "";
 
-        if (logo instanceof File && logo.size > 0) {
+        // ✅ Upload logo (outside DB work)
+        if (logo && logo.size > 0) {
             const buffer = Buffer.from(await logo.arrayBuffer());
             const ext = logo.name.split(".").pop() || "jpg";
-            const key = `dashboard/teams/${name.trim()}-${Date.now()}.${ext}`;
+            const key = `dashboard/teams/${name}-${Date.now()}.${ext}`;
 
             imageUrl = await uploadToS3(buffer, key, logo.type);
         }
 
-        let players: PlayerTypes[] = [];
+        const players = JSON.parse(playersRaw);
 
-        if (playersRaw) {
-            try {
-                players = JSON.parse(playersRaw);
-            } catch {
-                return NextResponse.json(
-                    { error: "Invalid players JSON" },
-                    { status: 400 }
-                );
-            }
+        // ✅ Save team FIRST (no transaction)
+        let savedTeam;
+
+        if (!teamId) {
+            savedTeam = await prisma.team.create({
+                data: { name, image: imageUrl },
+            });
+        } else {
+            savedTeam = await prisma.team.update({
+                where: { id: teamId },
+                data: { name, image: imageUrl },
+            });
         }
 
-        const team = await withRetry(() =>
-            prisma.$transaction(async () => {
-                let savedTeam;
+        for (const p of players) {
+            await prisma.player.update({
+                where: { id: p.id },
+                data: {
+                    order: p.order,
+                    teamId: savedTeam.id,
+                },
+            });
+        }
 
-                if (!teamId) {
-                    savedTeam = await prisma.team.create({
-                        data: { name, image: imageUrl },
-                    });
-                } else {
-                    savedTeam = await prisma.team.update({
-                        where: { id: teamId },
-                        data: { name, image: imageUrl },
-                    });
+        return NextResponse.json(savedTeam);
 
-                    await prisma.player.deleteMany({
-                        where: { teamId: savedTeam.id },
-                    });
-                }
-
-                if (players.length > 0) {
-                    await prisma.player.createMany({
-                        data: players.map(p => ({
-                            name: p.name,
-                            gameName: p.gameName,
-                            image: p.image,
-                            order: p.order,
-                            teamId: savedTeam.id,
-                        })),
-                    });
-                }
-            }))
-
-
-            return NextResponse.json(JSON.parse(JSON.stringify(team)));
     } catch (error) {
         console.error("TEAM SAVE ERROR:", error);
 

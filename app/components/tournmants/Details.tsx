@@ -1,4 +1,5 @@
-"use client";import { Save, Trash2, Upload } from "lucide-react";
+"use client";
+import { Save, Trash2, Upload } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -63,6 +64,10 @@ export default function Details({
   });
 
   const router = useRouter();
+
+  const handleRemoveGroup = (groupName: string) => {
+    setGroups((prev) => prev.filter((group) => group.name !== groupName));
+  };
 
   const handleStateImageChange = (
     field: StateFileKey,
@@ -191,9 +196,6 @@ export default function Details({
     toast.success("Tournament updated");
   };
 
-  const assignedTeamNames = groups.flatMap((group) =>
-    group.teams.map((team) => team.name),
-  );
 
   useEffect(() => {
     if (!tournament?.groups) return;
@@ -406,7 +408,18 @@ export default function Details({
               key={i}
               className="flex  justify-start bg-[#0a0e1a] border border-gray-800 rounded-lg px-3 py-2 flex-col gap-2 "
             >
-              <p className="text-sm text-gray-300 font-medium">{group.name}</p>
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-300 font-medium">
+                  {group.name}
+                </p>
+
+                <button
+                  onClick={() => handleRemoveGroup(group.name)}
+                  className="text-xs text-red-400 hover:text-red-300"
+                >
+                  Delete Group
+                </button>
+              </div>
 
               {group.teams.map((team) => (
                 <div
@@ -439,14 +452,11 @@ export default function Details({
                     className="w-full px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300 "
                   >
                     <option value="">Select a team</option>
-
-                    {teamList
-                      .filter((team) => !assignedTeamNames.includes(team.name))
-                      .map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
+                    {teamList.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
