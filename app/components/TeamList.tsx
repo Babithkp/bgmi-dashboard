@@ -7,6 +7,7 @@ import AddTeamModal from "./AddTeamModal";
 import TeamModal from "./TeamModal";
 import { TeamTypes } from "@/lib/types";
 
+
 type TeamListProbs = {
   Teams: TeamTypes[];
   reFetchAll: () => void;
@@ -159,7 +160,7 @@ export default function TeamList({ Teams, reFetchAll }: TeamListProbs) {
         isOpen={isAddTeamModalOpen}
         onClose={() => setIsAddTeamModalOpen(false)}
         onSubmit={reFetchAll}
-        team={team}
+        initialTeam={team}
       />
       <TeamModal
         isOpen={isTeamModalOpen}

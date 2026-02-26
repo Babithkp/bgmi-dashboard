@@ -17,17 +17,13 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { TeamTypes } from "@/lib/types";
 
 interface AddTeamModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: () => void;
-  initialTeam: {
-    id?: string;
-    name: string;
-    image: string;
-    players: EditablePlayer[];
-  };
+  initialTeam: TeamTypes | null;
 }
 
 type EditablePlayer = {
