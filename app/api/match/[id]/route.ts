@@ -153,6 +153,7 @@ export async function GET(
 
 interface Performance {
   id: string;
+  name: string;
   status: "Alive" | "Dead";
   matchTeamId: string | null;
   finishesPoints: number;
@@ -284,6 +285,7 @@ export async function PATCH(
           return prisma.matchPlayerPerformance.update({
             where: { id: p.id },
             data: {
+              name: p.name,
               status: p.status,
               finishesPoints: p.finishesPoints,
               teamContribution: Number(contribution.toFixed(2)),

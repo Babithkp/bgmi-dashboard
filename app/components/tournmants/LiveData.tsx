@@ -32,6 +32,7 @@ export default function LiveData({
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [enableEdit, setEnableEdit] = useState(false);
 
   const groupedByTeam = selectedMatch?.matchTeam?.reduce(
     (acc, matchTeam) => {
@@ -163,6 +164,22 @@ export default function LiveData({
     });
   };
 
+  const handleNameChange = (performanceId: string, value: string) => {
+    setSelectedMatch((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        matchTeam: prev.matchTeam?.map((team) => ({
+          ...team,
+          playerPerformances: team.playerPerformances.map((p) =>
+            p.id === performanceId ? { ...p, name: value } : p,
+          ),
+        })),
+      };
+    });
+  };
+
   const handleCreateMatch = async () => {
     if (!newmatchTitle.trim()) {
       toast.error("Enter match title");
@@ -200,6 +217,7 @@ export default function LiveData({
       selectedMatch.matchTeam?.flatMap((team) =>
         team.playerPerformances.map((p) => ({
           id: p.id,
+          name: p.name,
           status: p.status,
           finishesPoints: p.finishesPoints,
         })),
@@ -221,6 +239,7 @@ export default function LiveData({
         return;
       }
       refetchAll();
+      setEnableEdit(false);
       toast.success("Scores updated");
     } catch (error) {
       console.error(error);
@@ -592,9 +611,39 @@ export default function LiveData({
                       </tr>
 
                       {teamData.players.map((performance) => (
-                        <tr key={performance.id}>
-                          <td className="px-4 py-3 text-sm text-gray-300">
-                            {performance.name}
+                        <tr
+                          key={performance.id}
+                          className="animation-duration-initial duration-200"
+                        >
+                          <td className="px-4 py-3 text-sm text-gray-300 relative">
+                            <input
+                              type="text"
+                              value={performance.name}
+                              onChange={(e) =>
+                                handleNameChange(performance.id, e.target.value)
+                              }
+                              className={`w-full px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg 
+                                    text-sm text-gray-300 focus:outline-none focus:border-gray-700
+                                    transition-all duration-300
+                                    ${
+                                      enableEdit
+                                        ? "opacity-100 translate-y-0"
+                                        : "opacity-0 -translate-y-2 pointer-events-none absolute"
+                                    }
+                                  `}
+                            />
+
+                            <p
+                              className={`transition-all duration-300
+                              ${
+                                enableEdit
+                                  ? "opacity-0 translate-y-2 pointer-events-none absolute"
+                                  : "opacity-100 translate-y-0"
+                              }
+                            `}
+                            >
+                              {performance.name}
+                            </p>
                           </td>
 
                           <td className="px-4 py-3">
@@ -662,6 +711,28 @@ export default function LiveData({
             </tbody>
           </table>
           <div className="w-full flex items-center gap-4 justify-end">
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-sm font-medium transition-colors ${
+                  enableEdit ? "text-green-400" : "text-gray-400"
+                }`}
+              >
+                {enableEdit ? "Edit Enabled" : "Edit Disabled"}
+              </span>
+
+              <div
+                onClick={() => setEnableEdit((prev) => !prev)}
+                className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300
+                ${enableEdit ? "bg-green-500" : "bg-gray-700"}
+              `}
+              >
+                <div
+                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300
+                  ${enableEdit ? "translate-x-6" : ""}
+                `}
+                />
+              </div>
+            </div>
             <select
               value={winningTeamId || selectedMatch?.winTeam?.id || ""}
               onChange={(e) => setWinningTeamId(e.target.value)}
