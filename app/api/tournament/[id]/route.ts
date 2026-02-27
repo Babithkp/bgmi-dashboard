@@ -290,6 +290,21 @@ export async function DELETE(
     });
 
     await deleteFromS3(tournament.image);
+    if (tournament.allDead) {
+      await deleteFromS3(tournament.allDead);
+    }
+    if (tournament.oneAlive) {
+      await deleteFromS3(tournament.oneAlive);
+    }
+    if (tournament.twoAlive) {
+      await deleteFromS3(tournament.twoAlive);
+    }
+    if (tournament.threeAlive) {
+      await deleteFromS3(tournament.threeAlive);
+    }
+    if (tournament.fourAlive) {
+      await deleteFromS3(tournament.fourAlive);
+    }
 
     await prisma.tournament.delete({
       where: { id },

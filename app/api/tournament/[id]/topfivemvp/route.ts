@@ -1,10 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-import {
-  MatchPlayerPerformanceTypes,
-  MatchTeamTypes,
-} from "@/lib/types";
 
 type AggregatedPlayer = {
   name: string;
@@ -20,6 +16,7 @@ type AggregatedTeam = {
   totalPoints: number;
   placementPoints: number;
   finishesPoints: number;
+  totalWins: number;
   players: Record<string, AggregatedPlayer>;
 };
 
@@ -35,6 +32,9 @@ export async function GET(
       include: {
         matches: {
           include: {
+            winTeam: {
+              select: { name: true },
+            },
             matchTeam: {
               include: {
                 playerPerformances: true,
@@ -59,7 +59,18 @@ export async function GET(
       );
     }
 
-    const allTeams: MatchTeamTypes[] =
+    // ✅ 1️⃣ Build Win Map (teamName → totalWins)
+    const winMap: Record<string, number> = {};
+
+    tournament.matches.forEach(match => {
+      const winnerName = match.winTeam?.name;
+      if (!winnerName) return;
+
+      winMap[winnerName] = (winMap[winnerName] || 0) + 1;
+    });
+
+    // ✅ 2️⃣ Flatten all teams
+    const allTeams =
       tournament.matches.flatMap(match => match.matchTeam ?? []);
 
     if (!allTeams.length) {
@@ -69,6 +80,7 @@ export async function GET(
       );
     }
 
+    // ✅ 3️⃣ Aggregate totals
     const teamTotals = allTeams.reduce<Record<string, AggregatedTeam>>(
       (acc, team) => {
         const teamKey = `${team.name}-${team.image}`;
@@ -80,6 +92,7 @@ export async function GET(
             totalPoints: 0,
             placementPoints: 0,
             finishesPoints: 0,
+            totalWins: winMap[team.name] || 0, // ✅ HERE
             players: {},
           };
         }
@@ -96,37 +109,41 @@ export async function GET(
         acc[teamKey].finishesPoints += finishedPoints;
         acc[teamKey].totalPoints += teamTotal;
 
-        team.playerPerformances.forEach(
-          (perf: MatchPlayerPerformanceTypes) => {
-            const playerKey = `${perf.name}-${perf.image}`;
+        team.playerPerformances.forEach(perf => {
+          const playerKey = `${perf.name}-${perf.image}`;
 
-            if (!acc[teamKey].players[playerKey]) {
-              acc[teamKey].players[playerKey] = {
-                name: perf.name,
-                image: perf.image,
-                totalPoints: 0,
-                finishesPoints: 0,
-                teamContribution: 0,
-              };
-            }
-
-            const playerTotal = placement + perf.finishesPoints;
-
-            acc[teamKey].players[playerKey].totalPoints += playerTotal;
-            acc[teamKey].players[playerKey].finishesPoints +=
-              perf.finishesPoints;
-            acc[teamKey].players[playerKey].teamContribution +=
-              perf.teamContribution;
+          if (!acc[teamKey].players[playerKey]) {
+            acc[teamKey].players[playerKey] = {
+              name: perf.name,
+              image: perf.image,
+              totalPoints: 0,
+              finishesPoints: 0,
+              teamContribution: 0,
+            };
           }
-        );
+
+          const playerTotal = placement + perf.finishesPoints;
+
+          acc[teamKey].players[playerKey].totalPoints += playerTotal;
+          acc[teamKey].players[playerKey].finishesPoints +=
+            perf.finishesPoints;
+          acc[teamKey].players[playerKey].teamContribution +=
+            perf.teamContribution;
+        });
 
         return acc;
       },
       {}
     );
 
+    // ✅ 4️⃣ Sort by Wins first, then Points
     const top5Teams = Object.values(teamTotals)
-      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .sort((a, b) => {
+        if (b.totalWins !== a.totalWins) {
+          return b.totalWins - a.totalWins;
+        }
+        return b.totalPoints - a.totalPoints;
+      })
       .slice(0, 5);
 
     return NextResponse.json({
@@ -136,6 +153,8 @@ export async function GET(
         rank: index + 1,
         name: teamData.name,
         image: teamData.image,
+        teamGroupImage: teamData.image,
+        totalWins: teamData.totalWins, // ✅ INCLUDED
         totalPoints: teamData.totalPoints,
         placementPoints: teamData.placementPoints,
         finishesPoints: teamData.finishesPoints,

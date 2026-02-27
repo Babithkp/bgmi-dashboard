@@ -10,6 +10,8 @@ type TeamStats = {
   aliveCount: number;
   deadCount: number;
   teamImage: string;
+  teamGroupImage: string;
+  totalWins: number;
   status: string | null;
 };
 
@@ -35,13 +37,10 @@ function resolveTeamStatusImage(
 
 export async function GET() {
   try {
+    // 1️⃣ Get latest LIVE match
     const match = await prisma.match.findFirst({
-      where: {
-        status: "Live",
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
+      where: { status: "Live" },
+      orderBy: { updatedAt: "desc" },
       include: {
         group: {
           select: { name: true },
@@ -60,12 +59,6 @@ export async function GET() {
             playerPerformances: true,
           },
         },
-        winTeam: {
-          select: {
-            name: true,
-            image: true,
-          },
-        },
       },
     });
 
@@ -76,39 +69,60 @@ export async function GET() {
       );
     }
 
-    const allPerformances =
-      match.matchTeam.flatMap((team) => team.playerPerformances);
-
-    if (!allPerformances.length) {
+    if (!match.tournamentId) {
       return NextResponse.json(
-        { error: "No performances found" },
-        { status: 404 }
+        { error: "Tournament not linked to match" },
+        { status: 400 }
       );
     }
 
-    // ✅ TEAM STATS (unchanged)
+    // 2️⃣ Get ALL matches inside same tournament that have winners
+    const tournamentMatches = await prisma.match.findMany({
+      where: {
+        tournamentId: match.tournamentId,
+        winnerId: { not: null },
+      },
+      include: {
+        winTeam: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    // 3️⃣ Build win count map using TEAM NAME
+    const winMap: Record<string, number> = {};
+
+    for (const m of tournamentMatches) {
+      const teamName = m.winTeam?.name;
+      if (!teamName) continue;
+
+      winMap[teamName] = (winMap[teamName] || 0) + 1;
+    }
+
+    // 4️⃣ Build Team Stats
     const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
       (acc, team) => {
         if (!acc[team.id]) {
           acc[team.id] = {
             teamName: team.name,
             teamImage: team.image,
+            teamGroupImage: team.groupImage,
             status: team.status,
             totalFinishPoints: 0,
             totalPoints: team.totalPoints,
             aliveCount: 0,
             deadCount: 0,
+            totalWins: winMap[team.name] || 0,
           };
         }
 
         team.playerPerformances.forEach((perf) => {
           acc[team.id].totalFinishPoints += perf.finishesPoints;
 
-          if (perf.status === "Alive") {
-            acc[team.id].aliveCount += 1;
-          } else if (perf.status === "Dead") {
-            acc[team.id].deadCount += 1;
-          }
+          if (perf.status === "Alive") acc[team.id].aliveCount++;
+          if (perf.status === "Dead") acc[team.id].deadCount++;
         });
 
         return acc;
@@ -122,6 +136,8 @@ export async function GET() {
         teamRank: index + 1,
         teamName: team.teamName,
         teamImage: team.teamImage,
+        teamGroupImage: team.teamGroupImage,
+        totalWins: team.totalWins,
         teamTotalFinishPoints: team.totalFinishPoints,
         teamTotalPoints: team.totalPoints,
         aliveCount: team.aliveCount,
@@ -138,7 +154,6 @@ export async function GET() {
       groupName: match.group?.name,
       status: match.status,
       teams: rankedTeams,
-
     });
 
   } catch (error) {
@@ -150,7 +165,6 @@ export async function GET() {
     );
   }
 }
-
 
 
 
@@ -215,6 +229,7 @@ export async function POST(req: Request) {
       data: groupTeams.map(({ team }) => ({
         name: team.name,
         image: team.image,
+        groupImage: team.groupImage,
         group: groupId,
         status: "Live",
         matchId: match.id,

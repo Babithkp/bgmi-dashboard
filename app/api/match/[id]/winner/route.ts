@@ -8,19 +8,22 @@ export async function GET(
   try {
     const { id } = await context.params;
 
+    // 1️⃣ Get match
     const match = await prisma.match.findUnique({
       where: { id },
       include: {
         group: {
-          select: {
-            name: true,
-          },
+          select: { name: true },
+        },
+        tournament: {
+          select: { id: true },
         },
         winTeam: {
           select: {
             id: true,
             name: true,
             image: true,
+            groupImage: true,
           },
         },
         matchTeam: {
@@ -28,7 +31,9 @@ export async function GET(
             id: true,
             name: true,
             image: true,
+            groupImage: true,
             playerPerformances: true,
+            status: true,
           },
         },
       },
@@ -48,6 +53,14 @@ export async function GET(
       );
     }
 
+    if (!match.tournamentId) {
+      return NextResponse.json(
+        { error: "Tournament not linked" },
+        { status: 400 }
+      );
+    }
+
+    // 2️⃣ Find winner snapshot in this match
     const winnerTeam = match.matchTeam.find(
       (team) => team.id === match.winnerId
     );
@@ -59,13 +72,36 @@ export async function GET(
       );
     }
 
+    // 3️⃣ Count wins inside SAME tournament by team name
+    const tournamentMatches = await prisma.match.findMany({
+      where: {
+        tournamentId: match.tournamentId,
+        winnerId: { not: null },
+      },
+      include: {
+        winTeam: {
+          select: { name: true },
+        },
+      },
+    });
 
+    let totalWins = 0;
+
+    for (const m of tournamentMatches) {
+      if (m.winTeam?.name === winnerTeam.name) {
+        totalWins++;
+      }
+    }
+
+    // 4️⃣ Return result
     return NextResponse.json({
       matchName: match.name,
       groupName: match.group?.name,
       team: {
         name: winnerTeam.name,
         image: winnerTeam.image,
+        groupImage: winnerTeam.groupImage,
+        totalWins: totalWins, // ✅ Correct tournament-based wins
         playerPerformances: winnerTeam.playerPerformances,
       },
     });

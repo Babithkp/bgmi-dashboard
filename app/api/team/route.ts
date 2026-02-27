@@ -30,7 +30,8 @@ export async function POST(request: Request) {
         const editLogo = formData.get("editLogo") as string | null;
         const playersRaw = formData.get("players") as string;
 
-        console.log(playersRaw);
+        const groupImage = formData.get("groupImage") as File | null;
+        const editGroupImage = formData.get("editGroupImage") as string | null;
 
 
         if (!name?.trim()) {
@@ -41,29 +42,34 @@ export async function POST(request: Request) {
         }
 
         let imageUrl = editLogo || "";
+        let groupImageUrl = editGroupImage || "";
 
-        // ✅ Upload logo (outside DB work)
-        if (logo && logo.size > 0) {
-            const buffer = Buffer.from(await logo.arrayBuffer());
-            const ext = logo.name.split(".").pop() || "jpg";
+        async function GetImageUrl(image: File) {
+            const buffer = Buffer.from(await image.arrayBuffer());
+            const ext = image.name.split(".").pop() || "jpg";
             const key = `dashboard/teams/${name}-${Date.now()}.${ext}`;
+            return await uploadToS3(buffer, key, image.type);
+        }
 
-            imageUrl = await uploadToS3(buffer, key, logo.type);
+        if (logo && logo.size > 0) {
+            imageUrl = await GetImageUrl(logo);
+        }
+        if (groupImage && groupImage.size > 0) {
+            groupImageUrl = await GetImageUrl(groupImage);
         }
 
         const players = JSON.parse(playersRaw);
 
-        // ✅ Save team FIRST (no transaction)
         let savedTeam;
 
         if (!teamId) {
             savedTeam = await prisma.team.create({
-                data: { name, image: imageUrl },
+                data: { name, image: imageUrl, groupImage: groupImageUrl },
             });
         } else {
             savedTeam = await prisma.team.update({
                 where: { id: teamId },
-                data: { name, image: imageUrl },
+                data: { name, image: imageUrl, groupImage: groupImageUrl },
             });
         }
 

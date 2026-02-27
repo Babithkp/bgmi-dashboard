@@ -1,4 +1,5 @@
-import { X, Upload } from "lucide-react";import Image from "next/image";
+import { X, Upload } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -43,6 +44,8 @@ export default function AddTeamModal({
 }: AddTeamModalProps) {
   const [teamName, setTeamName] = useState("");
   const [teamLogo, setTeamLogo] = useState("");
+  const [teamGroupImage, setTeamGroupImage] = useState("");
+  const [groupImageFile, setGroupImageFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [players, setPlayers] = useState<EditablePlayer[]>([]);
@@ -57,18 +60,20 @@ export default function AddTeamModal({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const sensors = useSensors(useSensor(PointerSensor));  
+  const sensors = useSensors(useSensor(PointerSensor));
 
   useEffect(() => {
     if (!initialTeam) {
       setTeamName("");
       setTeamLogo("");
+      setTeamGroupImage("");
       setPlayers([]);
       return;
     }
 
     setTeamName(initialTeam.name);
     setTeamLogo(initialTeam.image);
+    setTeamGroupImage(initialTeam.groupImage);
     setPlayers(
       (initialTeam.players ?? [])
         .sort((a, b) => a.order - b.order)
@@ -81,6 +86,7 @@ export default function AddTeamModal({
         })),
     );
   }, [initialTeam]);
+  console.log(initialTeam);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -174,7 +180,6 @@ export default function AddTeamModal({
 
   const handleDelete = async () => {
     setIsLoading(true);
-    console.log(deleteId);
 
     try {
       const res = await fetch(`/api/players/${deleteId}`, {
@@ -191,6 +196,8 @@ export default function AddTeamModal({
       toast.error("Something went wrong");
     }
     onSubmit();
+    setDeleteId(null);
+    setIsLoading(false);
     setIsDeleteModalOpen(false);
   };
 
@@ -221,6 +228,12 @@ export default function AddTeamModal({
       } else if (teamLogo) {
         formData.append("editLogo", teamLogo);
       }
+      if (groupImageFile) {
+        formData.append("groupImage", groupImageFile);
+      } else if (teamGroupImage) {
+        formData.append("editGroupImage", teamGroupImage);
+      }
+
       if (initialTeam?.id) {
         formData.append("teamId", initialTeam.id);
       }
@@ -246,6 +259,7 @@ export default function AddTeamModal({
 
       toast.success("Team saved");
       setLogoFile(null);
+      setGroupImageFile(null);
       setTeamLogo("");
       setTeamName("");
       setPlayers([]);
@@ -266,6 +280,18 @@ export default function AddTeamModal({
     const reader = new FileReader();
     reader.onloadend = () => {
       setTeamLogo(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGroupImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setGroupImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setTeamGroupImage(reader.result as string);
     };
     reader.readAsDataURL(file);
   };
@@ -309,42 +335,83 @@ export default function AddTeamModal({
           </div>
 
           {/* Logo */}
-          <div>
-            <label className="block text-xs text-gray-500 mb-2">
-              Team Logo
-            </label>
+          <div className="flex justify-between items-center">
+            <div>
+              <label className="block text-xs text-gray-500 mb-2">
+                Team Logo
+              </label>
 
-            <div className="flex items-start gap-4">
-              <div className="shrink-0">
-                {teamLogo ? (
-                  <Image
-                    src={teamLogo}
-                    alt="Preview"
-                    width={80}
-                    height={80}
-                    unoptimized
-                    className="w-20 h-20 rounded-lg border border-gray-700 object-cover bg-gray-800"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-lg border border-gray-800 bg-[#0a0e1a] flex items-center justify-center">
-                    <Upload className="w-6 h-6 text-gray-600" />
-                  </div>
-                )}
+              <div className="flex items-start gap-4">
+                <div className="shrink-0">
+                  {teamLogo ? (
+                    <Image
+                      src={teamLogo}
+                      alt="Preview"
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className="w-20 h-20 rounded-lg border border-gray-700 object-cover bg-gray-800"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg border border-gray-800 bg-[#0a0e1a] flex items-center justify-center">
+                      <Upload className="w-6 h-6 text-gray-600" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <label className="cursor-pointer">
+                    <div className="px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 inline-flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      Upload Logo
+                    </div>
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                    />
+                  </label>
+                </div>
               </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-2">
+                Team Group Image
+              </label>
 
-              <div className="flex-1">
-                <label className="cursor-pointer">
-                  <div className="px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 inline-flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    Upload Logo
-                  </div>
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                  />
-                </label>
+              <div className="flex items-start gap-4">
+                <div className="shrink-0">
+                  {teamGroupImage ? (
+                    <Image
+                      src={teamGroupImage}
+                      alt="Preview"
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className="w-20 h-20 rounded-lg border border-gray-700 object-cover bg-gray-800"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg border border-gray-800 bg-[#0a0e1a] flex items-center justify-center">
+                      <Upload className="w-6 h-6 text-gray-600" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <label className="cursor-pointer">
+                    <div className="px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 inline-flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      Upload Group Image
+                    </div>
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleGroupImageChange}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           </div>

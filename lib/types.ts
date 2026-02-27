@@ -11,6 +11,7 @@ export interface TeamTypes {
     id: string;
     name: string;
     image: string;
+    groupImage: string;
     createdAt: string;
     players: PlayerTypes[];
 }

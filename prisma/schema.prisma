@@ -21,6 +21,7 @@ model Team {
   id                  String                @id @default(auto()) @map("_id") @db.ObjectId
   name                String                @unique
   image               String
+  groupImage          String
   players             Player[]
   createdAt           DateTime              @default(now())
   groupTeamTournament GroupTeamTournament[]
@@ -84,6 +85,7 @@ model MatchTeam {
   group              String                   @db.ObjectId
   name               String
   image              String
+  groupImage         String
   status             String?                  @default("Live")
   placementPoints    Int                      @default(0)
   totalPoints        Int                      @default(0)

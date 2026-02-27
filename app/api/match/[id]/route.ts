@@ -5,9 +5,11 @@ import { NextResponse } from "next/server";
 type TeamStats = {
   teamName: string;
   totalFinishPoints: number;
+  teamGroupImage: string;
   totalPoints: number;
   aliveCount: number;
   deadCount: number;
+  totalWins: number;
   teamImage: string;
   status: string | null;
 };
@@ -39,12 +41,11 @@ export async function GET(
   try {
     const { id } = await context.params;
 
+    // 1️⃣ Get match to know tournament
     const match = await prisma.match.findUnique({
       where: { id },
-      include: {
-        group: {
-          select: { name: true },
-        },
+      select: {
+        tournamentId: true,
         tournament: {
           select: {
             allDead: true,
@@ -54,102 +55,119 @@ export async function GET(
             fourAlive: true,
           },
         },
+      },
+    });
+
+    if (!match || !match.tournamentId) {
+      return NextResponse.json(
+        { error: "Match or Tournament not found" },
+        { status: 404 }
+      );
+    }
+
+    // 2️⃣ Get ALL matches in this tournament
+    const tournamentMatches = await prisma.match.findMany({
+      where: {
+        tournamentId: match.tournamentId,
+      },
+      include: {
         matchTeam: {
           include: {
             playerPerformances: true,
           },
         },
         winTeam: {
-          select: {
-            name: true,
-            image: true,
-          },
+          select: { name: true },
         },
       },
     });
 
-    if (!match) {
+    if (!tournamentMatches.length) {
       return NextResponse.json(
-        { error: "Match not found" },
+        { error: "No matches found in tournament" },
         { status: 404 }
       );
     }
 
-    const allPerformances =
-      match.matchTeam.flatMap((team) => team.playerPerformances);
+    // 3️⃣ Build win map by TEAM NAME
+    const winMap: Record<string, number> = {};
 
-    if (!allPerformances.length) {
-      return NextResponse.json(
-        { error: "No performances found" },
-        { status: 404 }
-      );
+    for (const m of tournamentMatches) {
+      const winnerName = m.winTeam?.name;
+      if (!winnerName) continue;
+
+      winMap[winnerName] = (winMap[winnerName] || 0) + 1;
     }
 
-    // ✅ TEAM STATS (unchanged)
-    const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
-      (acc, team) => {
-        if (!acc[team.id]) {
-          acc[team.id] = {
+    // 4️⃣ Aggregate Tournament Stats
+    const teamStats: Record<string, TeamStats> = {};
+
+    for (const m of tournamentMatches) {
+      for (const team of m.matchTeam) {
+        if (!teamStats[team.name]) {
+          teamStats[team.name] = {
             teamName: team.name,
             teamImage: team.image,
-            status: team.status,
+            teamGroupImage: team.groupImage,
             totalFinishPoints: 0,
-            totalPoints: team.totalPoints,
+            totalPoints: 0,
             aliveCount: 0,
             deadCount: 0,
+            totalWins: winMap[team.name] || 0,
+            status: team.status ?? null, 
           };
         }
 
-        team.playerPerformances.forEach((perf) => {
-          acc[team.id].totalFinishPoints += perf.finishesPoints;
+        teamStats[team.name].totalPoints += team.totalPoints;
 
-          if (perf.status === "Alive") {
-            acc[team.id].aliveCount += 1;
-          } else if (perf.status === "Dead") {
-            acc[team.id].deadCount += 1;
-          }
-        });
+        for (const perf of team.playerPerformances) {
+          teamStats[team.name].totalFinishPoints += perf.finishesPoints;
 
-        return acc;
-      },
-      {}
-    );
+          if (perf.status === "Alive")
+            teamStats[team.name].aliveCount++;
 
-    const rankedTeams = Object.values(teamStats)
-      .sort((a, b) => b.totalPoints - a.totalPoints)
-      .map((team, index) => ({
-        teamRank: index + 1,
-        teamName: team.teamName,
-        teamImage: team.teamImage,
-        teamTotalFinishPoints: team.totalFinishPoints,
-        teamTotalPoints: team.totalPoints,
-        aliveCount: team.aliveCount,
-        deadCount: team.deadCount,
-        status: team.status,
-        aliveimage: resolveTeamStatusImage(
-          team.aliveCount,
-          match.tournament
-        ),
-      }));
+          if (perf.status === "Dead")
+            teamStats[team.name].deadCount++;
+        }
+      }
+    }
+    const rankedTeams = (Object.values(teamStats) as TeamStats[])
+    .sort((a, b) => {
+      if (b.totalWins !== a.totalWins) {
+        return b.totalWins - a.totalWins;
+      }
+      return b.totalPoints - a.totalPoints;
+    })
+    .map((team, index) => ({
+      teamRank: index + 1,
+      teamName: team.teamName,
+      teamImage: team.teamImage,
+      teamGroupImage: team.teamGroupImage,
+      totalWins: team.totalWins,
+      totalFinishPoints: team.totalFinishPoints,
+      totalPoints: team.totalPoints,
+      aliveCount: team.aliveCount,
+      deadCount: team.deadCount,
+      aliveimage: resolveTeamStatusImage(
+        team.aliveCount,
+        match.tournament
+      ),
+    }));
 
     return NextResponse.json({
-      matchName: match.name,
-      groupName: match.group?.name,
-      status: match.status,
+      tournamentId: match.tournamentId,
       teams: rankedTeams,
-      
     });
 
   } catch (error) {
-    console.error("TEAM RANK ERROR:", error);
+    console.error("TOURNAMENT RANK ERROR:", error);
 
     return NextResponse.json(
-      { error: "Failed to fetch match data" },
+      { error: "Failed to fetch tournament leaderboard" },
       { status: 500 }
     );
   }
 }
-
 
 interface Performance {
   id: string;
@@ -215,6 +233,14 @@ export async function PATCH(
           { status: 400 }
         );
       }
+
+      await prisma.match.update({
+        where: { id },
+        data: {
+          winnerId: winningTeamId,
+          status: "Completed",
+        },
+      });
     }
 
     const dbPerformances = await prisma.matchPlayerPerformance.findMany({
@@ -330,15 +356,6 @@ export async function PATCH(
       });
     });
 
-    if (winningTeamId) {
-      await prisma.match.update({
-        where: { id },
-        data: {
-          winnerId: winningTeamId,
-          status: "Completed",
-        },
-      });
-    }
 
     return NextResponse.json({ success: true });
 
