@@ -1,4 +1,5 @@
-"use client";import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
+"use client";
+import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteModel from "../DeleteModel";
@@ -390,7 +391,7 @@ export default function LiveData({
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-4 justify-between">
                   <p className="text-sm font-medium text-gray-400 w-full">
-                    Match Points Table
+                    Live Status
                   </p>
                   <div className="text-xs rounded-md p-1 px-2 bg-[#0a0e1a] flex gap-2 items-center justify-between w-full">
                     <p>
@@ -538,178 +539,158 @@ export default function LiveData({
               </button>
             </div>
           </div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                  Player Name
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                  Status
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                  Placement Points
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                  Finishes Points
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                  Total Points
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800">
-              {groupedByTeam &&
-                Object.entries(groupedByTeam).map(([teamName, teamData]) => {
-                  const totalFinishes = teamData.players.reduce(
-                    (sum, p) => sum + p.finishesPoints,
-                    0,
-                  );
-                  const totalPoints = totalFinishes + teamData.placementPoints;
-                  return (
-                    <React.Fragment key={teamData.teamId}>
-                      <tr className="bg-[#0f1320]">
-                        <td
-                          colSpan={2}
-                          className="px-4 py-3 text-sm font-medium text-blue-400 border-y border-gray-800"
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {groupedByTeam &&
+              Object.entries(groupedByTeam).map(([teamName, teamData]) => {
+                const totalFinishes = teamData.players.reduce(
+                  (sum, p) => sum + p.finishesPoints,
+                  0,
+                );
+
+                const totalPoints = totalFinishes + teamData.placementPoints;
+                return (
+                  <div
+                    key={teamData.teamId}
+                    className="border border-gray-800 rounded-xl p-4 bg-[#0f1320]"
+                  >
+                    <div className="flex justify-between border-b border-gray-800 pb-4">
+                      <h2 className="text-sm font-medium text-blue-400">
+                        {teamName}
+                      </h2>
+                      <p className="text-sm">TF: {totalFinishes}</p>
+                      <p className="text-sm text-blue-400 font-medium">
+                        Total Points: {totalPoints}
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between py-4">
+                      <p className="text-sm  text-gray-400">Placement Points</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() =>
+                            handleTeamPlacementChange(teamData.teamId, -1)
+                          }
+                          className="px-2 py-1 bg-red-500/10 text-red-400 rounded"
                         >
-                          {teamName}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() =>
-                                handleTeamPlacementChange(teamData.teamId, -1)
-                              }
-                              className="px-2 py-1 bg-red-500/10 text-red-400 rounded"
-                            >
-                              −
-                            </button>
-                            <span className="text-sm text-gray-300 w-6 text-center">
-                              {teamData.placementPoints}
-                            </span>
-                            <button
-                              onClick={() =>
-                                handleTeamPlacementChange(teamData.teamId, 1)
-                              }
-                              className="px-2 py-1 bg-green-500/10 text-green-400 rounded"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-3  text-sm text-gray-400 ">
-                          {totalFinishes}
-                        </td>
-
-                        <td className="px-4 py-3 ">
-                          <span className="text-sm font-medium text-blue-400">
-                            {totalPoints}
-                          </span>
-                        </td>
-                      </tr>
-
-                      {teamData.players.map((performance) => (
-                        <tr
-                          key={performance.id}
-                          className="animation-duration-initial duration-200"
+                          −
+                        </button>
+                        <span className="text-sm text-gray-300 w-6 text-center">
+                          {teamData.placementPoints}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handleTeamPlacementChange(teamData.teamId, 1)
+                          }
+                          className="px-2 py-1 bg-green-500/10 text-green-400 rounded"
                         >
-                          <td className="px-4 py-3 text-sm text-gray-300 relative">
-                            <input
-                              type="text"
-                              value={performance.name}
-                              onChange={(e) =>
-                                handleNameChange(performance.id, e.target.value)
-                              }
-                              className={`w-full px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg 
-                                    text-sm text-gray-300 focus:outline-none focus:border-gray-700
-                                    transition-all duration-300
-                                    ${
-                                      enableEdit
-                                        ? "opacity-100 translate-y-0"
-                                        : "opacity-0 -translate-y-2 pointer-events-none absolute"
-                                    }
-                                  `}
-                            />
-
-                            <p
-                              className={`transition-all duration-300
-                              ${
-                                enableEdit
-                                  ? "opacity-0 translate-y-2 pointer-events-none absolute"
-                                  : "opacity-100 translate-y-0"
-                              }
-                            `}
-                            >
-                              {performance.name}
-                            </p>
-                          </td>
-
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() =>
-                                handleStatusChange(
-                                  performance.id,
-                                  performance.status === "Alive"
-                                    ? "Dead"
-                                    : "Alive",
-                                )
-                              }
-                              className={`relative w-14 h-7 flex items-center rounded-full transition-colors duration-300
-                              ${performance.status === "Alive" ? "bg-green-500/20" : "bg-red-500/20"}`}
-                            >
-                              <div
-                                className={`absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300
-                                ${performance.status === "Alive" ? "translate-x-7" : "translate-x-0"}`}
-                              />
-                              <span className="sr-only">Toggle Status</span>
-                            </button>
-                          </td>
-
-                          <td></td>
-
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
+                          +
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                      {teamData.players.map((performance) => {
+                        const playerTotal =
+                          teamData.placementPoints + performance.finishesPoints;
+                        return (
+                          <div
+                            key={performance.id}
+                            className="bg-[#0a0e1a] p-3 rounded-lg border border-gray-800 flex gap-4 flex-col"
+                          >
+                            <div className="relative flex justify-between items-center ">
+                              <div>
+                                <input
+                                  type="text"
+                                  value={performance.name}
+                                  onChange={(e) =>
+                                    handleNameChange(
+                                      performance.id,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className={`w-full px-3 py-2 bg-[#131720] border border-gray-700 rounded text-sm text-gray-300
+                                ${
+                                  enableEdit
+                                    ? "opacity-100"
+                                    : "opacity-0 pointer-events-none absolute"
+                                }
+                                    `}
+                                />
+                                <p
+                                  className={`text-sm text-gray-300
+                                ${
+                                  enableEdit
+                                    ? "opacity-0 pointer-events-none absolute"
+                                    : "opacity-100"
+                                }
+                                `}
+                                >
+                                  {performance.name}
+                                </p>
+                              </div>
                               <button
                                 onClick={() =>
-                                  handlePointsChange(
+                                  handleStatusChange(
                                     performance.id,
-                                    "finishesPoints",
-                                    -1,
+                                    performance.status === "Alive"
+                                      ? "Dead"
+                                      : "Alive",
                                   )
                                 }
-                                className="px-2 py-1 bg-red-500/10 text-red-400 rounded"
+                                className={`relative w-14 h-7 flex items-center rounded-full transition-colors duration-300
+                                ${performance.status === "Alive" ? "bg-green-500/20" : "bg-red-500/20"}`}
                               >
-                                −
-                              </button>
-
-                              <span className="text-sm text-gray-300 w-6 text-center">
-                                {performance.finishesPoints}
-                              </span>
-
-                              <button
-                                onClick={() =>
-                                  handlePointsChange(
-                                    performance.id,
-                                    "finishesPoints",
-                                    1,
-                                  )
-                                }
-                                className="px-2 py-1 bg-green-500/10 text-green-400 rounded"
-                              >
-                                +
+                                <div
+                                  className={`absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300
+                                  ${performance.status === "Alive" ? "translate-x-7" : "translate-x-0"}`}
+                                />
+                                <span className="sr-only">Toggle Status</span>
                               </button>
                             </div>
-                          </td>
-                          <td></td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  );
-                })}
-            </tbody>
-          </table>
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    handlePointsChange(
+                                      performance.id,
+                                      "finishesPoints",
+                                      -1,
+                                    )
+                                  }
+                                  className="px-2 py-1 bg-red-500/10 text-red-400 rounded"
+                                >
+                                  −
+                                </button>
+
+                                <span className="text-sm text-gray-300 w-6 text-center">
+                                  {performance.finishesPoints}
+                                </span>
+
+                                <button
+                                  onClick={() =>
+                                    handlePointsChange(
+                                      performance.id,
+                                      "finishesPoints",
+                                      1,
+                                    )
+                                  }
+                                  className="px-2 py-1 bg-green-500/10 text-green-400 rounded"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <p className="text-right text-sm text-blue-400 font-medium">
+                                {playerTotal} pts
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
           <div className="w-full flex items-center gap-4 justify-end">
             <div className="flex items-center gap-3">
               <span
@@ -737,6 +718,7 @@ export default function LiveData({
               value={winningTeamId || selectedMatch?.winTeam?.id || ""}
               onChange={(e) => setWinningTeamId(e.target.value)}
               className="px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm  text-gray-300 focus:outline-none focus:border-gray-700"
+              disabled={selectedMatch?.status === "Completed"}
             >
               <option value="">Select Winner</option>
               {selectedMatch?.matchTeam?.map((team) => (
@@ -752,7 +734,7 @@ export default function LiveData({
               disabled={isLoading}
             >
               {isLoading ? (
-                "Submit..."
+                "Submiting..."
               ) : (
                 <>
                   <Save className="w-4 h-4" />

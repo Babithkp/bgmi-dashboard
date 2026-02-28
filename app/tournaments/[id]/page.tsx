@@ -1,5 +1,4 @@
-"use client";
-import { useEffect, useState } from "react";
+"use client";import { useEffect, useState } from "react";
 import { ArrowLeft, User } from "lucide-react";
 import Link from "next/link";
 import Details from "@/app/components/tournmants/Details";
@@ -24,16 +23,14 @@ export default function TournamentDetail({
     const response = await fetch("/api/team");
     const data = await response.json();
     setTeams(data);
-    
-    
+    console.log(data);
   }
 
   async function fetchMatches(id: string) {
     const response = await fetch(`/api/tournament/match/${id}`);
     const data = await response.json();
-    setAllMatchData(data);    
+    setAllMatchData(data);
     setSelectedMatch(data[0]);
-    console.log(data)
   }
 
   async function refetchAll() {
@@ -49,8 +46,7 @@ export default function TournamentDetail({
       const response = await fetch(`/api/tournament/${id}`);
       if (!response.ok) return;
       const data = await response.json();
-      // console.log(data)
-      
+
       setTournament(data);
       fetchMatches(id);
       fetchTeams();

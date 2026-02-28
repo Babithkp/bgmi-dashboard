@@ -17,6 +17,7 @@ type AggregatedTeam = {
   placementPoints: number;
   finishesPoints: number;
   totalWins: number;
+  matchesPlayed: number;
   players: Record<string, AggregatedPlayer>;
 };
 
@@ -59,7 +60,6 @@ export async function GET(
       );
     }
 
-    // ✅ 1️⃣ Build Win Map (teamName → totalWins)
     const winMap: Record<string, number> = {};
 
     tournament.matches.forEach(match => {
@@ -67,6 +67,15 @@ export async function GET(
       if (!winnerName) return;
 
       winMap[winnerName] = (winMap[winnerName] || 0) + 1;
+    });
+
+    const matchCountMap: Record<string, number> = {};
+
+    tournament.matches.forEach(match => {
+      match.matchTeam?.forEach(team => {
+        matchCountMap[team.name] =
+          (matchCountMap[team.name] || 0) + 1;
+      });
     });
 
     // ✅ 2️⃣ Flatten all teams
@@ -92,7 +101,8 @@ export async function GET(
             totalPoints: 0,
             placementPoints: 0,
             finishesPoints: 0,
-            totalWins: winMap[team.name] || 0, // ✅ HERE
+            totalWins: winMap[team.name] || 0,
+            matchesPlayed: matchCountMap[team.name] || 0,
             players: {},
           };
         }
@@ -154,7 +164,8 @@ export async function GET(
         name: teamData.name,
         image: teamData.image,
         teamGroupImage: teamData.image,
-        totalWins: teamData.totalWins, // ✅ INCLUDED
+        totalWins: teamData.totalWins,
+        matchesPlayed: teamData.matchesPlayed,
         totalPoints: teamData.totalPoints,
         placementPoints: teamData.placementPoints,
         finishesPoints: teamData.finishesPoints,

@@ -123,11 +123,7 @@ export default function AddTeamModal({
   };
 
   const handleAddPlayer = async () => {
-    if (
-      !newPlayer.name.trim() ||
-      !newPlayer.gameName.trim() ||
-      !previewPlayerImage
-    ) {
+    if (!newPlayer.name.trim() || !previewPlayerImage) {
       toast.error("Fill all player fields");
       return;
     }
@@ -207,9 +203,7 @@ export default function AddTeamModal({
       return;
     }
 
-    const hasEmptyPlayer = players.some(
-      (p) => !(p.name ?? "").trim() || !(p.gameName ?? "").trim(),
-    );
+    const hasEmptyPlayer = players.some((p) => !(p.name ?? "").trim());
 
     if (hasEmptyPlayer) {
       toast.error("All player details must be filled");

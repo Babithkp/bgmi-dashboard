@@ -53,7 +53,6 @@ export async function GET(
       },
     });
 
-    // 3️⃣ Build win map by team name
     const winMap: Record<string, number> = {};
 
     for (const m of tournamentMatches) {
@@ -62,8 +61,26 @@ export async function GET(
 
       winMap[teamName] = (winMap[teamName] || 0) + 1;
     }
+    const matchCountMap: Record<string, number> = {};
 
-    // 4️⃣ Build performances with correct tournament-based wins
+    const allTournamentMatches = await prisma.match.findMany({
+      where: {
+        tournamentId: match.tournamentId,
+      },
+      include: {
+        matchTeam: {
+          select: { name: true },
+        },
+      },
+    });
+
+    for (const m of allTournamentMatches) {
+      for (const team of m.matchTeam) {
+        matchCountMap[team.name] =
+          (matchCountMap[team.name] || 0) + 1;
+      }
+    }
+
     const performancesWithTotals = match.matchTeam.flatMap(team =>
       team.playerPerformances.map(player => ({
         ...player,
@@ -71,7 +88,8 @@ export async function GET(
         teamName: team.name,
         teamImage: team.image,
         teamGroupImage: team.groupImage,
-        totalWins: winMap[team.name] || 0, // ✅ FIXED HERE
+        totalWins: winMap[team.name] || 0,
+        matchesPlayed: matchCountMap[team.name] || 0,
         placementPoints: team.placementPoints,
         totalPoints: team.placementPoints + player.finishesPoints,
       }))
@@ -84,7 +102,6 @@ export async function GET(
       );
     }
 
-    // 5️⃣ Sort by totalPoints
     const sorted = performancesWithTotals.sort(
       (a, b) => b.totalPoints - a.totalPoints
     );
@@ -106,6 +123,7 @@ export async function GET(
           image: p.teamImage,
           groupImage: p.teamGroupImage,
           totalWins: p.totalWins,
+          matchesPlayed: p.matchesPlayed,
         },
 
         finishesPoints: p.finishesPoints,

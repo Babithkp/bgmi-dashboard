@@ -13,6 +13,7 @@ type TeamStats = {
   teamGroupImage: string;
   totalWins: number;
   status: string | null;
+  matchesPlayed: number;
 };
 
 function resolveTeamStatusImage(
@@ -100,6 +101,26 @@ export async function GET() {
 
       winMap[teamName] = (winMap[teamName] || 0) + 1;
     }
+    // 3️⃣ Build match count map for this tournament
+    const allTournamentMatches = await prisma.match.findMany({
+      where: {
+        tournamentId: match.tournamentId,
+      },
+      include: {
+        matchTeam: {
+          select: { name: true },
+        },
+      },
+    });
+
+    const matchCountMap: Record<string, number> = {};
+
+    for (const m of allTournamentMatches) {
+      for (const team of m.matchTeam) {
+        matchCountMap[team.name] =
+          (matchCountMap[team.name] || 0) + 1;
+      }
+    }
 
     // 4️⃣ Build Team Stats
     const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
@@ -115,6 +136,7 @@ export async function GET() {
             aliveCount: 0,
             deadCount: 0,
             totalWins: winMap[team.name] || 0,
+            matchesPlayed: matchCountMap[team.name] || 0,
           };
         }
 
@@ -138,6 +160,7 @@ export async function GET() {
         teamImage: team.teamImage,
         teamGroupImage: team.teamGroupImage,
         totalWins: team.totalWins,
+        matchesPlayed: team.matchesPlayed,
         teamTotalFinishPoints: team.totalFinishPoints,
         teamTotalPoints: team.totalPoints,
         aliveCount: team.aliveCount,

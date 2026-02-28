@@ -60,6 +60,7 @@ export async function GET(
       );
     }
 
+
     // 2️⃣ Find winner snapshot in this match
     const winnerTeam = match.matchTeam.find(
       (team) => team.id === match.winnerId
@@ -71,6 +72,14 @@ export async function GET(
         { status: 404 }
       );
     }
+    const matchesPlayed = await prisma.matchTeam.count({
+      where: {
+        name: winnerTeam.name,
+        match: {
+          tournamentId: match.tournamentId,
+        },
+      },
+    });
 
     // 3️⃣ Count wins inside SAME tournament by team name
     const tournamentMatches = await prisma.match.findMany({
@@ -101,7 +110,8 @@ export async function GET(
         name: winnerTeam.name,
         image: winnerTeam.image,
         groupImage: winnerTeam.groupImage,
-        totalWins: totalWins, // ✅ Correct tournament-based wins
+        totalWins: totalWins,
+        matchesPlayed: matchesPlayed, 
         playerPerformances: winnerTeam.playerPerformances,
       },
     });

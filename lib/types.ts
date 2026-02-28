@@ -75,3 +75,36 @@ export interface MatchPlayerPerformanceTypes {
     teamContribution: number;
     matchTeam?: MatchTeamTypes | null;
 }
+
+export interface EliminationTeamTypes {
+    id: string;
+    name: string;
+    rank: number;
+    image: string;
+    status: string;
+}
+
+export interface HeadOnPlayersTypes {
+    id: string;
+    name: string;
+    image: string;
+    gameName: string;
+    totalPoints: number;
+    placementPoints: number;
+    finishesPoints: number;
+    teamContribution: number;
+    matchesPlayed: number;
+    totalWins: number;
+}
+
+export interface HeadOnTeamsTypes {
+    id: string;
+    name: string;
+    image: string;
+    groupImage: string;
+    totalWins: number;
+    matchesPlayed: number;
+    totalPoints: number;
+    placementPoints: number;
+    playersfinishesPoints: number;
+}

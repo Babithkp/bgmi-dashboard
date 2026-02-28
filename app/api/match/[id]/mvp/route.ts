@@ -46,6 +46,7 @@ export async function GET(
       );
     }
 
+
     const winMap: Record<string, number> = {};
 
     for (const m of tournamentMatches) {
@@ -53,6 +54,14 @@ export async function GET(
       if (!winnerName) continue;
 
       winMap[winnerName] = (winMap[winnerName] || 0) + 1;
+    }
+    const matchCountMap: Record<string, number> = {};
+
+    for (const m of tournamentMatches) {
+      for (const team of m.matchTeam) {
+        matchCountMap[team.name] =
+          (matchCountMap[team.name] || 0) + 1;
+      }
     }
 
     const performancesWithTotals = tournamentMatches.flatMap(m =>
@@ -67,7 +76,8 @@ export async function GET(
           teamContribution: player.teamContribution,
           teamName: team.name,
           teamImage: team.image,
-          totalWins: winMap[team.name] || 0, // ✅ HERE
+          totalWins: winMap[team.name] || 0,
+          matchesPlayed: matchCountMap[team.name] || 0,
         }))
       )
     );
@@ -84,8 +94,6 @@ export async function GET(
     );
 
     return NextResponse.json({
-      tournamentId: match.tournamentId,
-
       player: {
         name: mvp.name,
         image: mvp.image,
@@ -98,7 +106,8 @@ export async function GET(
         team: {
           name: mvp.teamName,
           image: mvp.teamImage,
-          totalWins: mvp.totalWins, 
+          totalWins: mvp.totalWins,
+          matchesPlayed: mvp.matchesPlayed,
         },
       },
     });

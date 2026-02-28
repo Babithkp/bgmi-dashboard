@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { qstash } from "@/lib/qstash";
 import { NextResponse } from "next/server";
 
 type TeamStats = {
@@ -12,6 +11,7 @@ type TeamStats = {
   totalWins: number;
   teamImage: string;
   status: string | null;
+  matchesPlayed: number;
 };
 
 function resolveTeamStatusImage(
@@ -41,13 +41,15 @@ export async function GET(
   try {
     const { id } = await context.params;
 
-    // 1️⃣ Get match to know tournament
     const match = await prisma.match.findUnique({
       where: { id },
-      select: {
-        tournamentId: true,
+      include: {
+        matchTeam: {
+          select: { name: true },
+        },
         tournament: {
           select: {
+            id: true,
             allDead: true,
             oneAlive: true,
             twoAlive: true,
@@ -58,17 +60,20 @@ export async function GET(
       },
     });
 
-    if (!match || !match.tournamentId) {
+    if (!match || !match.tournament) {
       return NextResponse.json(
         { error: "Match or Tournament not found" },
         { status: 404 }
       );
     }
 
-    // 2️⃣ Get ALL matches in this tournament
+    const currentTeamSet = new Set(
+      match.matchTeam.map((t) => t.name)
+    );
+
     const tournamentMatches = await prisma.match.findMany({
       where: {
-        tournamentId: match.tournamentId,
+        tournamentId: match.tournament.id,
       },
       include: {
         matchTeam: {
@@ -89,7 +94,6 @@ export async function GET(
       );
     }
 
-    // 3️⃣ Build win map by TEAM NAME
     const winMap: Record<string, number> = {};
 
     for (const m of tournamentMatches) {
@@ -99,11 +103,12 @@ export async function GET(
       winMap[winnerName] = (winMap[winnerName] || 0) + 1;
     }
 
-    // 4️⃣ Aggregate Tournament Stats
     const teamStats: Record<string, TeamStats> = {};
 
     for (const m of tournamentMatches) {
       for (const team of m.matchTeam) {
+        if (!currentTeamSet.has(team.name)) continue;
+
         if (!teamStats[team.name]) {
           teamStats[team.name] = {
             teamName: team.name,
@@ -114,10 +119,12 @@ export async function GET(
             aliveCount: 0,
             deadCount: 0,
             totalWins: winMap[team.name] || 0,
-            status: team.status ?? null, 
+            status: team.status ?? null,
+            matchesPlayed: 0,
           };
         }
 
+        teamStats[team.name].matchesPlayed += 1;
         teamStats[team.name].totalPoints += team.totalPoints;
 
         for (const perf of team.playerPerformances) {
@@ -131,31 +138,32 @@ export async function GET(
         }
       }
     }
-    const rankedTeams = (Object.values(teamStats) as TeamStats[])
-    .sort((a, b) => {
-      if (b.totalWins !== a.totalWins) {
-        return b.totalWins - a.totalWins;
-      }
-      return b.totalPoints - a.totalPoints;
-    })
-    .map((team, index) => ({
-      teamRank: index + 1,
-      teamName: team.teamName,
-      teamImage: team.teamImage,
-      teamGroupImage: team.teamGroupImage,
-      totalWins: team.totalWins,
-      totalFinishPoints: team.totalFinishPoints,
-      totalPoints: team.totalPoints,
-      aliveCount: team.aliveCount,
-      deadCount: team.deadCount,
-      aliveimage: resolveTeamStatusImage(
-        team.aliveCount,
-        match.tournament
-      ),
-    }));
+
+    const rankedTeams = Object.values(teamStats)
+      .sort((a, b) => {
+        if (b.totalWins !== a.totalWins) {
+          return b.totalWins - a.totalWins;
+        }
+        return b.totalPoints - a.totalPoints;
+      })
+      .map((team, index) => ({
+        teamRank: index + 1,
+        teamName: team.teamName,
+        teamImage: team.teamImage,
+        teamGroupImage: team.teamGroupImage,
+        totalWins: team.totalWins,
+        totalFinishPoints: team.totalFinishPoints,
+        totalPoints: team.totalPoints,
+        matchesPlayed: team.matchesPlayed,
+        aliveCount: team.aliveCount,
+        deadCount: team.deadCount,
+        aliveimage: resolveTeamStatusImage(
+          team.aliveCount,
+          match.tournament
+        ),
+      }));
 
     return NextResponse.json({
-      tournamentId: match.tournamentId,
       teams: rankedTeams,
     });
 
@@ -320,6 +328,16 @@ export async function PATCH(
         });
       })
     );
+    const totalTeamsInMatch = await prisma.matchTeam.count({
+      where: { matchId: id },
+    });
+
+    const alreadyEliminatedCount = await prisma.matchTeam.count({
+      where: {
+        matchId: id,
+        status: "Eliminated",
+      },
+    });
 
     // Step 1: Get affected team IDs
     const affectedTeamIds = Object.keys(performancesByTeam);
@@ -336,7 +354,7 @@ export async function PATCH(
           },
         },
       },
-      select: { id: true },
+      select: { id: true, name: true, image: true },
     });
 
     await prisma.$transaction(
@@ -347,14 +365,24 @@ export async function PATCH(
         })
       )
     );
+    if (teamsToEliminate.length > 0) {
+      await prisma.eliminationTeam.deleteMany()
+    }
 
-    teamsToEliminate.forEach(async (team) => {
-      await qstash.publishJSON({
-        url: "https://bgmi-dashboard-rust.vercel.app/api/match/elimination",
-        body: { teamId: team.id },
-        delay: 60,
+    for (let i = 0; i < teamsToEliminate.length; i++) {
+      const team = teamsToEliminate[i];
+      const eliminationRank =
+        totalTeamsInMatch - alreadyEliminatedCount - i;
+      await prisma.eliminationTeam.create({
+        data: {
+          id: team.id,
+          name: team.name,
+          rank: eliminationRank,
+          image: team.image,
+          status: "Eliminated",
+        },
       });
-    });
+    }
 
 
     return NextResponse.json({ success: true });
