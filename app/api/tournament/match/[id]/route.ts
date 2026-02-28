@@ -42,7 +42,6 @@ export async function GET(
         }
       }
   
-      // ✅ Attach matchesPlayed to each matchTeam
       const updatedMatches = matches.map(match => ({
         ...match,
         matchTeam: match.matchTeam.map(team => ({

@@ -82,6 +82,7 @@ model Match {
 
 model MatchTeam {
   id                 String                   @id @default(auto()) @map("_id") @db.ObjectId
+  teamId             String                   @db.ObjectId
   group              String                   @db.ObjectId
   name               String
   image              String
@@ -100,7 +101,9 @@ model MatchTeam {
 
 model MatchPlayerPerformance {
   id               String     @id @default(auto()) @map("_id") @db.ObjectId
+  playerId         String     @db.ObjectId
   name             String
+  gameName         String?
   image            String
   finishesPoints   Int        @default(0)
   status           String     @default("Alive")
@@ -131,13 +134,21 @@ model HeadOnPlayers {
 }
 
 model HeadOnTeams {
-  id                    String @id @default(auto()) @map("_id") @db.ObjectId
+  id                    String  @id @default(auto()) @map("_id") @db.ObjectId
   name                  String
   image                 String
   groupImage            String
   totalWins             Int
   matchesPlayed         Int
   placementPoints       Int
-  playersfinishesPoints Int
+  playersFinishesPoints Int
   totalPoints           Int
+  player1Name           String?
+  player1Image          String?
+  player2Name           String?
+  player2Image          String?
+  player3Name           String?
+  player3Image          String?
+  player4Name           String?
+  player4Image          String?
 }

@@ -250,6 +250,7 @@ export async function POST(req: Request) {
 
     await prisma.matchTeam.createMany({
       data: groupTeams.map(({ team }) => ({
+        teamId: team.id,
         name: team.name,
         image: team.image,
         groupImage: team.groupImage,
@@ -269,7 +270,9 @@ export async function POST(req: Request) {
       )?.team;
 
       return (originalTeam?.players ?? []).map((player) => ({
+        playerId: player.id,
         name: player.name,
+        gameName: player.gameName,
         image: player.image,
         matchTeamId: matchTeam.id,
         status: "Alive",

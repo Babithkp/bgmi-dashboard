@@ -18,8 +18,12 @@ export async function GET(
             id: true,
             name: true,
             groupTeamTournament: {
-              select: {
-                team: true
+              include: {
+                team: {
+                  include: {
+                    players: true
+                  }
+                }
               }
             }
           }

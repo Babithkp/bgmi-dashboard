@@ -344,6 +344,7 @@ export default function Details({
                         img.existing ||
                         ""
                       }
+                      loading="eager"
                       alt={img.label}
                       width={300}
                       height={120}

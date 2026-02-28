@@ -1,12 +1,65 @@
+import { TeamTypes } from "@/lib/types";
 import { Check, Copy } from "lucide-react";
-import React, { useState } from "react";
+import Image from "next/image";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+
+export type ComparedPlayer = {
+  id: string;
+  name: string;
+  image: string;
+  teamName: string;
+  totalFinishes: number;
+  totalPlacementPoints: number;
+  totalPoints: number;
+  matchesPlayed: number;
+  wins: number;
+  totalContribution: number;
+  avgContribution: number;
+};
+export type ComparedTeam = {
+  id: string;
+  name: string;
+  image: string;
+  totalFinishes: number;
+  totalPlacementPoints: number;
+  totalPoints: number;
+  matchesPlayed: number;
+  wins: number;
+  players: {
+    id: string;
+    name: string;
+    image: string;
+  }[];
+};
 
 export default function Links({
   tournamentId,
+  teamList,
 }: {
   tournamentId: string | undefined;
+  teamList: TeamTypes[];
 }) {
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [player1, setPlayer1] = useState<ComparedPlayer | null>(null);
+  const [player2, setPlayer2] = useState<ComparedPlayer | null>(null);
+  const [player1Id, setPlayer1Id] = useState<string>("");
+  const [player2Id, setPlayer2Id] = useState<string>("");
+
+  const [team1, setTeam1] = useState<ComparedTeam | null>(null);
+  const [team2, setTeam2] = useState<ComparedTeam | null>(null);
+  const [team1Id, setTeam1Id] = useState<string>("");
+  const [team2Id, setTeam2Id] = useState<string>("");
+
+  const [showPlayerTable, setShowPlayerTable] = useState(false);
+  const [showTeamTable, setShowTeamTable] = useState(false);
+
+  const allPlayers = useMemo(
+    () => teamList.flatMap((team) => team.players),
+    [teamList],
+  );
+
   const copyToClipboard = (url: string, id: number) => {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
@@ -39,41 +92,534 @@ export default function Links({
       name: "Overall points table",
       url: `${window.location.origin}/api/tournament/match/${tournamentId}`,
     },
+    {
+      id: 7,
+      name: "Players Head On",
+      url: `${window.location.origin}/api/tournament/playersheadon`,
+    },
+    {
+      id: 8,
+      name: "Teams Head On",
+      url: `${window.location.origin}/api/tournament/teamsheadon`,
+    },
   ];
+
+  const onPlayerCompareHandler = async () => {
+    setIsLoading(true);
+    if (!player1Id || !player2Id) {
+      toast.error("Please select both players");
+      return;
+    }
+    setPlayer1(null);
+    setPlayer2(null);
+    setShowPlayerTable(false);
+    try {
+      const res = await fetch(`/api/tournament/playersheadon`, {
+        method: "POST",
+        body: JSON.stringify({
+          tournamentId: tournamentId,
+          player1Id: player1Id,
+          player2Id: player2Id,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPlayer1(data.comparison.player1);
+        setPlayer2(data.comparison.player2);
+        setShowPlayerTable(true);
+        setPlayer1Id("");
+        setPlayer2Id("");
+        toast.success("Players compared");
+      }
+    } catch (error) {
+      console.error("PLAYER COMPARE ERROR:", error);
+      toast.error("Something went wrong");
+    }
+    setIsLoading(false);
+  };
+
+  const onTeamCompareHandler = async () => {
+    setIsLoading(true);
+    if (!team1Id || !team2Id) {
+      toast.error("Please select both teams");
+      return;
+    }
+    setTeam1(null);
+    setTeam2(null);
+    setShowTeamTable(false);
+    try {
+      const res = await fetch(`/api/tournament/teamsheadon`, {
+        method: "POST",
+        body: JSON.stringify({
+          tournamentId: tournamentId,
+          team1Id: team1Id,
+          team2Id: team2Id,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTeam1(data.comparison.team1);
+        setTeam2(data.comparison.team2);
+
+        setShowTeamTable(true);
+        setTeam1Id("");
+        setTeam2Id("");
+        toast.success("Teams compared");
+      }
+    } catch (error) {
+      console.error("TEAM COMPARE ERROR:", error);
+      toast.error("Something went wrong");
+    }
+    setIsLoading(false);
+  };
+
   return (
-    <div className="bg-[#131720] border border-gray-800 rounded-xl p-6">
-      <h2 className="text-sm font-medium text-gray-400 mb-4">API Endpoints</h2>
-      <div className="space-y-3">
-        {mockLinks.map((link) => (
-          <div
-            key={link.id}
-            className="flex items-center justify-between p-4 bg-[#0a0e1a] border border-gray-800 rounded-lg hover:border-gray-700 transition-colors"
-          >
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-gray-300 mb-1">
-                {link.name}
-              </h3>
-              <p className="text-xs text-gray-500 truncate">{link.url}</p>
-            </div>
-            <button
-              onClick={() => copyToClipboard(link.url, link.id)}
-              className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
+    <section className="space-y-10">
+      <div className="bg-[#131720] border border-gray-800 rounded-xl p-6">
+        <h2 className="text-sm font-medium text-gray-400 mb-4">
+          API Endpoints
+        </h2>
+        <div className="space-y-3">
+          {mockLinks.map((link) => (
+            <div
+              key={link.id}
+              className="flex items-center justify-between p-4 bg-[#0a0e1a] border border-gray-800 rounded-lg hover:border-gray-700 transition-colors"
             >
-              {copiedId === link.id ? (
-                <>
-                  <Check className="w-4 h-4 text-green-400" />
-                  <span className="text-green-400">Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  Copy
-                </>
-              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-gray-300 mb-1">
+                  {link.name}
+                </h3>
+                <p className="text-xs text-gray-500 truncate">{link.url}</p>
+              </div>
+              <button
+                onClick={() => copyToClipboard(link.url, link.id)}
+                className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
+              >
+                {copiedId === link.id ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-400" />
+                    <span className="text-green-400">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-[#131720] border border-gray-800 rounded-xl p-6">
+        <h2 className="font-semibold text-sm mb-6 text-gray-400">
+          Players Head On
+        </h2>
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <select
+            className="w-full bg-gray-900 border border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={player1Id}
+            onChange={(e) => setPlayer1Id(e.target.value)}
+          >
+            <option value="">Select Player 1</option>
+            {allPlayers.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="w-full bg-gray-900 border border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={player2Id}
+            onChange={(e) => setPlayer2Id(e.target.value)}
+          >
+            <option value="">Select Player 2</option>
+            {allPlayers.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            className="w-full bg-blue-600 hover:bg-blue-700 transition px-6 py-3 rounded-lg font-medium text-white"
+            disabled={isLoading}
+            onClick={onPlayerCompareHandler}
+          >
+            {isLoading ? "Loading..." : "Compare Players"}
+          </button>
+        </div>
+        {showPlayerTable && player1 && player2 && (
+          <div className="grid md:grid-cols-3 gap-6 items-center">
+            {/* Player 1 */}
+            {player1.image ? (
+              <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+                <div className="text-center">
+                  <Image
+                    src={player1.image}
+                    width={100}
+                    height={100}
+                    alt="Player 1"
+                    className="mx-auto rounded-full border-4 border-blue-500 size-40 "
+                  />
+                  <h3 className="text-lg font-semibold text-white mt-4">
+                    {player1.name}
+                  </h3>
+                  <p className="text-gray-400">{player1.teamName}</p>
+                </div>
+
+                <div className="mt-6 space-y-3 text-sm">
+                  <div className="flex justify-between ">
+                    <span className="text-gray-400">Matches Played</span>
+                    <span className="text-white font-medium">
+                      {player1.matchesPlayed || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between ">
+                    <span className="text-gray-400">Matches Won</span>
+                    <span className="text-white font-medium">
+                      {player1.wins || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between ">
+                    <span className="text-gray-400">
+                      Team Contribution (Avg)
+                    </span>
+                    <span className="text-white font-medium">
+                      {player1.avgContribution || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between ">
+                    <span className="text-gray-400">Team Contribution</span>
+                    <span className="text-white font-medium">
+                      {player1.totalContribution || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-700 pt-3">
+                    <span className="text-gray-400">Total Finishes</span>
+                    <span className="text-white font-medium">
+                      {player1.totalFinishes || 0}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Total Placement</span>
+                    <span className="text-white font-medium">
+                      {player1.totalPlacementPoints || 0}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-t border-gray-700 pt-3">
+                    <span className="text-gray-300 font-medium">
+                      Total Points
+                    </span>
+                    <span className="text-blue-400 font-bold">
+                      {(player1.totalFinishes || 0) +
+                        (player1.totalPlacementPoints || 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+                <p>Player Has not played any matches yet</p>
+              </div>
+            )}
+
+            {/* VS */}
+            <div className="text-center text-5xl font-bold text-gray-600">
+              VS
+            </div>
+
+            {/* Player 2 */}
+            {player2.image ? (
+              <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+                <div className="text-center">
+                  <Image
+                    src={player2.image}
+                    width={100}
+                    height={100}
+                    alt="Player 2"
+                    className="mx-auto rounded-full border-4 border-red-500 object-cover size-40"
+                  />
+                  <h3 className="text-lg font-semibold text-white mt-4">
+                    {player2.name}
+                  </h3>
+                  <p className="text-gray-400">{player2.teamName}</p>
+                </div>
+
+                <div className="mt-6 space-y-3 text-sm">
+                  <div className="flex justify-between ">
+                    <span className="text-gray-400">Matches Played</span>
+                    <span className="text-white font-medium">
+                      {player2.matchesPlayed || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between ">
+                    <span className="text-gray-400">Matches Won</span>
+                    <span className="text-white font-medium">
+                      {player2.wins || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between ">
+                    <span className="text-gray-400">
+                      Team Contribution (Avg)
+                    </span>
+                    <span className="text-white font-medium">
+                      {player2.avgContribution || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between ">
+                    <span className="text-gray-400">Team Contribution</span>
+                    <span className="text-white font-medium">
+                      {player2.totalContribution || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-700 pt-3">
+                    <span className="text-gray-400">Total Finishes</span>
+                    <span className="text-white font-medium">
+                      {player2.totalFinishes || 0}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Total Placement</span>
+                    <span className="text-white font-medium">
+                      {player2.totalPlacementPoints || 0}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-t border-gray-700 pt-3">
+                    <span className="text-gray-300 font-medium">
+                      Total Points
+                    </span>
+                    <span className="text-blue-400 font-bold">
+                      {(player2.totalFinishes || 0) +
+                        (player2.totalPlacementPoints || 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+                <p>Player Has not played any matches yet</p>
+              </div>
+            )}
+          </div>
+        )}
+        <div className="w-full">
+          <h2 className="font-semibold text-sm mb-6 text-gray-400">
+            Teams Head On
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <select
+              className="w-full bg-gray-900 border border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={team1Id}
+              onChange={(e) => setTeam1Id(e.target.value)}
+            >
+              <option value="">Select Team 1</option>
+              {teamList.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="w-full bg-gray-900 border border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={team2Id}
+              onChange={(e) => setTeam2Id(e.target.value)}
+            >
+              <option value="">Select Team 2</option>
+              {teamList.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              className="w-full bg-green-600 hover:bg-green-700 transition px-6 py-3 rounded-lg font-medium text-white"
+              onClick={onTeamCompareHandler}
+              disabled={isLoading}
+            >
+              {isLoading ? "Loading..." : "Compare Teams"}
             </button>
           </div>
-        ))}
+          {showTeamTable && team1 && team2 && (
+            <div className="grid md:grid-cols-3 gap-6 items-center">
+              {/* Team 1 */}
+              {team1.image ? (
+                <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+                  <div className="text-center">
+                    <Image
+                      src={team1.image}
+                      width={130}
+                      height={130}
+                      alt="Team 1"
+                      className="mx-auto rounded-xl size-32"
+                    />
+                    <h3 className="text-xl font-semibold text-white mt-4 ">
+                      {team1.name}
+                    </h3>
+                  </div>
+
+                  {/* Team Stats */}
+                  <div className="mt-6 space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Matches Played</span>
+                      <span className="text-white font-medium">
+                        {team1.matchesPlayed || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Matches Won</span>
+                      <span className="text-white font-medium">
+                        {team1.wins || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-700 pt-3">
+                      <span className="text-gray-400">Placement Points</span>
+                      <span className="text-white font-medium">
+                        {team1.totalPlacementPoints || 0}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Total Finishes</span>
+                      <span className="text-white font-medium">
+                        {team1.totalFinishes || 0}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between border-t border-gray-700 pt-3">
+                      <span className="text-gray-300 font-medium">
+                        Total Points
+                      </span>
+                      <span className="text-green-400 font-bold">
+                        {team1.totalPoints || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Players */}
+                  <div className="mt-6">
+                    <p className="text-gray-400 text-sm mb-3">Players</p>
+
+                    <div className="relative h-20">
+                      {team1.players.map((p, index) => (
+                        <Image
+                          key={p.id}
+                          src={p.image}
+                          width={80}
+                          height={80}
+                          alt={p.name}
+                          className="rounded-full object-cover absolute border-4 border-gray-900 size-20"
+                          style={{
+                            left: `${index * 35}px`,
+                            zIndex: team1.players.length - index,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+                  <p>Team Has not played any matches yet</p>
+                </div>
+              )}
+
+              {/* VS */}
+              <div className="text-center text-5xl font-bold text-gray-600">
+                VS
+              </div>
+
+              {/* Team 2 */}
+              {team2.image ? (
+                <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+                  <div className="text-center">
+                    <Image
+                      src={team2.image}
+                      width={130}
+                      height={130}
+                      alt="Team 2"
+                      className="mx-auto rounded-xl size-40 object-cover"
+                    />
+                    <h3 className="text-xl font-semibold text-white mt-4 ">
+                      {team2.name}
+                    </h3>
+                  </div>
+
+                  <div className="mt-6 space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Matches Played</span>
+                      <span className="text-white font-medium">
+                        {team2.matchesPlayed || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Matches Won</span>
+                      <span className="text-white font-medium">
+                        {team2.wins || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-700 pt-3">
+                      <span className="text-gray-400">Placement Points</span>
+                      <span className="text-white font-medium">
+                        {team2.totalPlacementPoints || 0}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Total Finishes</span>
+                      <span className="text-white font-medium">
+                        {team2.totalFinishes || 0}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between border-t border-gray-700 pt-3">
+                      <span className="text-gray-300 font-medium">
+                        Total Points
+                      </span>
+                      <span className="text-green-400 font-bold">
+                        {team2.totalPoints || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="text-gray-400 text-sm mb-3">Players</p>
+
+                    <div className="relative h-20">
+                      {team2.players.map((p, index) => (
+                        <Image
+                          key={p.id}
+                          src={p.image}
+                          width={80}
+                          height={80}
+                          alt={p.name}
+                          className="rounded-full object-cover absolute border-4 border-gray-900 size-20"
+                          style={{
+                            left: `${index * 35}px`,
+                            zIndex: team2.players.length - index,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+                  <p>Team Has not played any matches yet</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
