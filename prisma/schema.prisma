@@ -113,11 +113,12 @@ model MatchPlayerPerformance {
 }
 
 model EliminationTeam {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  name   String
-  rank   Int
-  image  String
-  status String @default("Eliminated")
+  id                String @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  rank              Int
+  image             String
+  totalFinishPoints Int?
+  status            String @default("Eliminated")
 }
 
 model HeadOnPlayers {

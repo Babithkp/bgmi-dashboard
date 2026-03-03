@@ -38,7 +38,6 @@ function resolveTeamStatusImage(
 
 export async function GET() {
   try {
-    // 1️⃣ Get latest LIVE match
     const match = await prisma.match.findFirst({
       where: { status: "Live" },
       orderBy: { updatedAt: "desc" },
@@ -77,7 +76,6 @@ export async function GET() {
       );
     }
 
-    // 2️⃣ Get ALL matches inside same tournament that have winners
     const tournamentMatches = await prisma.match.findMany({
       where: {
         tournamentId: match.tournamentId,
@@ -92,7 +90,6 @@ export async function GET() {
       },
     });
 
-    // 3️⃣ Build win count map using TEAM NAME
     const winMap: Record<string, number> = {};
 
     for (const m of tournamentMatches) {
@@ -101,7 +98,6 @@ export async function GET() {
 
       winMap[teamName] = (winMap[teamName] || 0) + 1;
     }
-    // 3️⃣ Build match count map for this tournament
     const allTournamentMatches = await prisma.match.findMany({
       where: {
         tournamentId: match.tournamentId,
@@ -122,7 +118,6 @@ export async function GET() {
       }
     }
 
-    // 4️⃣ Build Team Stats
     const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
       (acc, team) => {
         if (!acc[team.id]) {

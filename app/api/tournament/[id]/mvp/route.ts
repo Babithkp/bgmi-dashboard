@@ -48,7 +48,6 @@ export async function GET(
       );
     }
 
-    // ✅ 1️⃣ Build Win Map
     const winMap: Record<string, number> = {};
 
     tournament.matches.forEach(match => {
@@ -58,7 +57,6 @@ export async function GET(
       winMap[winnerName] = (winMap[winnerName] || 0) + 1;
     });
 
-    // ✅ 2️⃣ Collect All Performances
     const allPerformances = tournament.matches.flatMap(match =>
       match.matchTeam.flatMap(team =>
         team.playerPerformances.map(perf => ({
@@ -80,7 +78,6 @@ export async function GET(
       );
     }
 
-    // ✅ 3️⃣ Aggregate Player Totals
     const playerTotals = allPerformances.reduce((acc, perf) => {
       const key = `${perf.name}-${perf.image}`;
 
@@ -114,7 +111,6 @@ export async function GET(
       matchesPlayed: number;
     }>);
 
-    // ✅ 4️⃣ Sort to Find MVP
     const topMVP = Object.values(playerTotals).sort(
       (a, b) => b.totalPoints - a.totalPoints
     )[0];
@@ -128,21 +124,17 @@ export async function GET(
 
     return NextResponse.json({
       tournamentName: tournament.name,
-
-      mvp: {
+      mvp: [{
         name: topMVP.name,
         image: topMVP.image,
         totalPoints: topMVP.totalPoints,
         placementPoints: topMVP.placementPoints,
         finishesPoints: topMVP.finishesPoints,
         matchesPlayed: topMVP.matchesPlayed,
-
-        team: {
-          name: topMVP.teamName,
-          image: topMVP.teamImage,
-          totalWins: winMap[topMVP.teamName] || 0, // ✅ INCLUDED
-        },
-      },
+        teamName: topMVP.teamName,
+        teamImage: topMVP.teamImage,
+        teamTotalWins: winMap[topMVP.teamName] || 0,
+      }],
     });
 
   } catch (error) {

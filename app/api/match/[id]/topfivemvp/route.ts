@@ -8,7 +8,6 @@ export async function GET(
   try {
     const { id } = await context.params;
 
-    // 1️⃣ Get match
     const match = await prisma.match.findUnique({
       where: { id },
       include: {
@@ -40,11 +39,9 @@ export async function GET(
       );
     }
 
-    // 2️⃣ Get all wins inside same tournament
     const tournamentMatches = await prisma.match.findMany({
       where: {
-        tournamentId: match.tournamentId,
-        winnerId: { not: null },
+        id,
       },
       include: {
         winTeam: {
@@ -109,23 +106,15 @@ export async function GET(
     const top5 = sorted.slice(0, 5);
 
     return NextResponse.json({
-      matchName: match.name,
-      groupName: match.group?.name ?? null,
-
       players: top5.map((p, index) => ({
         rank: index + 1,
         name: p.name,
         image: p.image,
-
-        team: {
-          id: p.teamId,
-          name: p.teamName,
-          image: p.teamImage,
-          groupImage: p.teamGroupImage,
-          totalWins: p.totalWins,
-          matchesPlayed: p.matchesPlayed,
-        },
-
+        teamName: p.teamName,
+        teamImage: p.teamImage,
+        teamGroupImage: p.teamGroupImage,
+        teamTotalWins: p.totalWins,
+        teamMatchesPlayed: p.matchesPlayed,
         finishesPoints: p.finishesPoints,
         placementPoints: p.placementPoints,
         totalPoints: p.totalPoints,

@@ -1,5 +1,4 @@
-import { TeamTypes } from "@/lib/types";
-import { Check, Copy } from "lucide-react";
+import { TeamTypes } from "@/lib/types";import { Check, Copy } from "lucide-react";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -90,7 +89,7 @@ export default function Links({
     {
       id: 6,
       name: "Overall points table",
-      url: `${window.location.origin}/api/tournament/match/${tournamentId}`,
+      url: `${window.location.origin}/api/tournament/${tournamentId}/overall`,
     },
     {
       id: 7,

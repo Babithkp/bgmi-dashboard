@@ -1,5 +1,4 @@
-"use client";
-import { useEffect, useState } from "react";
+"use client";import { useEffect, useState } from "react";
 import { ArrowLeft, User } from "lucide-react";
 import Link from "next/link";
 import Details from "@/app/components/tournmants/Details";
@@ -30,7 +29,12 @@ export default function TournamentDetail({
     const response = await fetch(`/api/tournament/match/${id}`);
     const data = await response.json();
     setAllMatchData(data);
-    setSelectedMatch(data[0]);
+    if (selectedMatch) {
+      const match = data.find((m: MatchTypes) => m.id === selectedMatch.id);
+      setSelectedMatch(match);
+    } else {
+      setSelectedMatch(data[0]);
+    }
   }
 
   async function refetchAll() {
@@ -46,14 +50,12 @@ export default function TournamentDetail({
       const response = await fetch(`/api/tournament/${id}`);
       if (!response.ok) return;
       const data = await response.json();
-      console.log(data);
-
       setTournament(data);
       fetchMatches(id);
       fetchTeams();
     };
     fetchTournament();
-  }, [params]);
+  }, []);
 
   return (
     <>

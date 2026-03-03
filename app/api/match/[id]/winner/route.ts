@@ -8,7 +8,6 @@ export async function GET(
   try {
     const { id } = await context.params;
 
-    // 1️⃣ Get match
     const match = await prisma.match.findUnique({
       where: { id },
       include: {
@@ -61,7 +60,6 @@ export async function GET(
     }
 
 
-    // 2️⃣ Find winner snapshot in this match
     const winnerTeam = match.matchTeam.find(
       (team) => team.id === match.winnerId
     );
@@ -81,11 +79,9 @@ export async function GET(
       },
     });
 
-    // 3️⃣ Count wins inside SAME tournament by team name
     const tournamentMatches = await prisma.match.findMany({
       where: {
-        tournamentId: match.tournamentId,
-        winnerId: { not: null },
+        id,
       },
       include: {
         winTeam: {
@@ -101,20 +97,25 @@ export async function GET(
         totalWins++;
       }
     }
-
-    // 4️⃣ Return result
-    return NextResponse.json({
-      matchName: match.name,
-      groupName: match.group?.name,
-      team: {
-        name: winnerTeam.name,
-        image: winnerTeam.image,
-        groupImage: winnerTeam.groupImage,
-        totalWins: totalWins,
-        matchesPlayed: matchesPlayed, 
-        playerPerformances: winnerTeam.playerPerformances,
-      },
-    });
+    const players = winnerTeam.playerPerformances.map((player) => ({
+      name: player.name,
+      image: player.image,
+    }));
+    return NextResponse.json([{
+      name: winnerTeam.name,
+      image: winnerTeam.image,
+      groupImage: winnerTeam.groupImage,
+      totalWins: totalWins,
+      matchesPlayed: matchesPlayed,
+      player1Name: players[0]?.name,
+      player1Image: players[0]?.image,
+      player2Name: players[1]?.name,
+      player2Image: players[1]?.image,
+      player3Name: players[2]?.name,
+      player3Image: players[2]?.image,
+      player4Name: players[3]?.name,
+      player4Image: players[3]?.image,
+    }]);
 
   } catch (error) {
     console.error("WINNER API ERROR:", error);

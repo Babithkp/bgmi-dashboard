@@ -1,25 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-
-type AggregatedPlayer = {
+export interface Player {
+  id: string;
   name: string;
+  gameName: string;
   image: string;
-  totalPoints: number;
-  finishesPoints: number;
-  teamContribution: number;
-};
-
-type AggregatedTeam = {
-  name: string;
-  image: string;
-  totalPoints: number;
-  placementPoints: number;
-  finishesPoints: number;
-  totalWins: number;
-  matchesPlayed: number;
-  players: Record<string, AggregatedPlayer>;
-};
+  team?: Team | null;
+}
+export type Team = { id: string; name: string; image: string; createdAt: Date; }
 
 export async function GET(
   req: Request,
@@ -69,126 +58,91 @@ export async function GET(
       winMap[winnerName] = (winMap[winnerName] || 0) + 1;
     });
 
-    const matchCountMap: Record<string, number> = {};
+    const allPerformances = tournament.matches.flatMap(match =>
+      match.matchTeam.flatMap(team =>
+        team.playerPerformances.map(perf => ({
+          name: perf.name,
+          image: perf.image,
+          teamName: team.name,
+          teamImage: team.image,
+          finishesPoints: perf.finishesPoints,
+          placementPoints: team.placementPoints,
+          totalPoints: team.placementPoints + perf.finishesPoints,
+        }))
+      )
+    );
 
-    tournament.matches.forEach(match => {
-      match.matchTeam?.forEach(team => {
-        matchCountMap[team.name] =
-          (matchCountMap[team.name] || 0) + 1;
-      });
-    });
-
-    // ✅ 2️⃣ Flatten all teams
-    const allTeams =
-      tournament.matches.flatMap(match => match.matchTeam ?? []);
-
-    if (!allTeams.length) {
+    if (!allPerformances.length) {
       return NextResponse.json(
-        { error: "No teams found" },
+        { error: "No performances found" },
         { status: 404 }
       );
     }
 
-    // ✅ 3️⃣ Aggregate totals
-    const teamTotals = allTeams.reduce<Record<string, AggregatedTeam>>(
-      (acc, team) => {
-        const teamKey = `${team.name}-${team.image}`;
+    const playerTotals = allPerformances.reduce((acc, perf) => {
+      const key = `${perf.name}-${perf.image}`;
 
-        if (!acc[teamKey]) {
-          acc[teamKey] = {
-            name: team.name,
-            image: team.image,
-            totalPoints: 0,
-            placementPoints: 0,
-            finishesPoints: 0,
-            totalWins: winMap[team.name] || 0,
-            matchesPlayed: matchCountMap[team.name] || 0,
-            players: {},
-          };
-        }
+      if (!acc[key]) {
+        acc[key] = {
+          name: perf.name,
+          image: perf.image,
+          teamName: perf.teamName,
+          teamImage: perf.teamImage,
+          totalPoints: 0,
+          placementPoints: 0,
+          finishesPoints: 0,
+          matchesPlayed: 0,
+        };
+      }
 
-        const finishedPoints = team.playerPerformances.reduce(
-          (sum, p) => sum + (p.finishesPoints ?? 0),
-          0
-        );
+      acc[key].totalPoints += perf.totalPoints;
+      acc[key].placementPoints += perf.placementPoints;
+      acc[key].finishesPoints += perf.finishesPoints;
+      acc[key].matchesPlayed += 1;
 
-        const placement = team.placementPoints ?? 0;
-        const teamTotal = placement + finishedPoints;
+      return acc;
+    }, {} as Record<string, {
+      name: string;
+      image: string;
+      teamName: string;
+      teamImage: string;
+      totalPoints: number;
+      placementPoints: number;
+      finishesPoints: number;
+      matchesPlayed: number;
+    }>);
 
-        acc[teamKey].placementPoints += placement;
-        acc[teamKey].finishesPoints += finishedPoints;
-        acc[teamKey].totalPoints += teamTotal;
+    const topMVP = Object.values(playerTotals).sort(
+      (a, b) => b.totalPoints - a.totalPoints
+    )
 
-        team.playerPerformances.forEach(perf => {
-          const playerKey = `${perf.name}-${perf.image}`;
-
-          if (!acc[teamKey].players[playerKey]) {
-            acc[teamKey].players[playerKey] = {
-              name: perf.name,
-              image: perf.image,
-              totalPoints: 0,
-              finishesPoints: 0,
-              teamContribution: 0,
-            };
-          }
-
-          const playerTotal = placement + perf.finishesPoints;
-
-          acc[teamKey].players[playerKey].totalPoints += playerTotal;
-          acc[teamKey].players[playerKey].finishesPoints +=
-            perf.finishesPoints;
-          acc[teamKey].players[playerKey].teamContribution +=
-            perf.teamContribution;
-        });
-
-        return acc;
-      },
-      {}
-    );
-
-    // ✅ 4️⃣ Sort by Wins first, then Points
-    const top5Teams = Object.values(teamTotals)
-      .sort((a, b) => {
-        if (b.totalWins !== a.totalWins) {
-          return b.totalWins - a.totalWins;
-        }
-        return b.totalPoints - a.totalPoints;
-      })
-      .slice(0, 5);
+    if (!topMVP) {
+      return NextResponse.json(
+        { error: "No MVP found" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       tournamentName: tournament.name,
-
-      teams: top5Teams.map((teamData, index) => ({
-        rank: index + 1,
-        name: teamData.name,
-        image: teamData.image,
-        teamGroupImage: teamData.image,
-        totalWins: teamData.totalWins,
-        matchesPlayed: teamData.matchesPlayed,
-        totalPoints: teamData.totalPoints,
-        placementPoints: teamData.placementPoints,
-        finishesPoints: teamData.finishesPoints,
-
-        players: Object.values(teamData.players)
-          .sort((a, b) => b.totalPoints - a.totalPoints)
-          .map(player => ({
-            name: player.name,
-            image: player.image,
-            totalPoints: player.totalPoints,
-            finishesPoints: player.finishesPoints,
-            teamContribution: Number(
-              player.teamContribution.toFixed(2)
-            ),
-          })),
+      mvp: topMVP.slice(0, 5).map((player) => ({
+        name: player.name,
+        image: player.image,
+        totalPoints: player.totalPoints,
+        placementPoints: player.placementPoints,
+        finishesPoints: player.finishesPoints,
+        matchesPlayed: player.matchesPlayed,
+        teamName: player.teamName,
+        teamImage: player.teamImage,
+        teamTotalWins: winMap[player.teamName] || 0,
       })),
     });
 
   } catch (error) {
-    console.error("TOP 5 TEAMS ERROR:", error);
+    console.error("TOURNAMENT MVP ERROR:", error);
 
     return NextResponse.json(
-      { error: "Failed to fetch Top 5 Teams" },
+      { error: "Failed to fetch MVP" },
       { status: 500 }
     );
   }

@@ -354,7 +354,16 @@ export async function PATCH(
           },
         },
       },
-      select: { id: true, name: true, image: true },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        playerPerformances: {
+          select: {
+            finishesPoints: true,
+          },
+        },
+      },
     });
 
     await prisma.$transaction(
@@ -373,11 +382,16 @@ export async function PATCH(
       const team = teamsToEliminate[i];
       const eliminationRank =
         totalTeamsInMatch - alreadyEliminatedCount - i;
+      const totalFinishPoints = team.playerPerformances.reduce(
+        (sum, p) => sum + p.finishesPoints,
+        0
+      );
       await prisma.eliminationTeam.create({
         data: {
           id: team.id,
           name: team.name,
           rank: eliminationRank,
+          totalFinishPoints: totalFinishPoints,
           image: team.image,
           status: "Eliminated",
         },

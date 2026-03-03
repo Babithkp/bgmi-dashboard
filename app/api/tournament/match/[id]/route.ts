@@ -32,7 +32,6 @@ export async function GET(
         },
       });
   
-      // ✅ Build match count map
       const matchCountMap: Record<string, number> = {};
   
       for (const m of matches) {
@@ -45,7 +44,7 @@ export async function GET(
       const updatedMatches = matches.map(match => ({
         ...match,
         matchTeam: match.matchTeam.map(team => ({
-            matchesPlayed: matchCountMap[team.name] || 0, // ✅ ADDED
+            matchesPlayed: matchCountMap[team.name] || 0, 
           ...team,
         })),
       }));

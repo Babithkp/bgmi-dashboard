@@ -25,7 +25,7 @@ export async function GET(
 
     const tournamentMatches = await prisma.match.findMany({
       where: {
-        tournamentId: match.tournamentId,
+        id
       },
       include: {
         matchTeam: {
@@ -45,7 +45,6 @@ export async function GET(
         { status: 404 }
       );
     }
-
 
     const winMap: Record<string, number> = {};
 
@@ -93,24 +92,19 @@ export async function GET(
       current.totalPoints > best.totalPoints ? current : best
     );
 
-    return NextResponse.json({
-      player: {
-        name: mvp.name,
-        image: mvp.image,
-        finishesPoints: mvp.finishesPoints,
-        placementPoints: mvp.placementPoints,
-        totalPoints: mvp.totalPoints,
-        status: mvp.status,
-        teamContribution: mvp.teamContribution,
-
-        team: {
-          name: mvp.teamName,
-          image: mvp.teamImage,
-          totalWins: mvp.totalWins,
-          matchesPlayed: mvp.matchesPlayed,
-        },
-      },
-    });
+    return NextResponse.json([{
+      name: mvp.name,
+      image: mvp.image,
+      finishesPoints: mvp.finishesPoints,
+      placementPoints: mvp.placementPoints,
+      totalPoints: mvp.totalPoints,
+      status: mvp.status,
+      teamContribution: mvp.teamContribution,
+      teamName: mvp.teamName,
+      teamImage: mvp.teamImage,
+      totalWins: mvp.totalWins,
+      matchesPlayed: mvp.matchesPlayed,
+    }]);
 
   } catch (error) {
     console.error("MVP FETCH ERROR:", error);
