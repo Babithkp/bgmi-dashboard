@@ -68,6 +68,7 @@ export async function GET(
           finishesPoints: perf.finishesPoints,
           placementPoints: team.placementPoints,
           totalPoints: team.placementPoints + perf.finishesPoints,
+          status: perf.status
         }))
       )
     );
@@ -92,6 +93,7 @@ export async function GET(
           placementPoints: 0,
           finishesPoints: 0,
           matchesPlayed: 0,
+          deathCount: 0
         };
       }
 
@@ -99,6 +101,10 @@ export async function GET(
       acc[key].placementPoints += perf.placementPoints;
       acc[key].finishesPoints += perf.finishesPoints;
       acc[key].matchesPlayed += 1;
+
+      if (perf.status === "Dead") {
+        acc[key].deathCount += 1;
+      }
 
       return acc;
     }, {} as Record<string, {
@@ -110,6 +116,7 @@ export async function GET(
       placementPoints: number;
       finishesPoints: number;
       matchesPlayed: number;
+      deathCount: number
     }>);
 
     const topMVP = Object.values(playerTotals).sort(
@@ -125,17 +132,25 @@ export async function GET(
 
     return NextResponse.json({
       tournamentName: tournament.name,
-      mvp: topMVP.slice(0, 5).map((player) => ({
-        name: player.name,
-        image: player.image,
-        totalPoints: player.totalPoints,
-        placementPoints: player.placementPoints,
-        finishesPoints: player.finishesPoints,
-        matchesPlayed: player.matchesPlayed,
-        teamName: player.teamName,
-        teamImage: player.teamImage,
-        teamTotalWins: winMap[player.teamName] || 0,
-      })),
+      mvp: topMVP.slice(0, 5).map((player) => {
+        const fd =
+          player.deathCount === 0
+            ? player.finishesPoints
+            : player.finishesPoints / player.deathCount;
+
+        return {
+          name: player.name,
+          image: player.image,
+          totalPoints: player.totalPoints,
+          placementPoints: player.placementPoints,
+          finishesPoints: player.finishesPoints,
+          matchesPlayed: player.matchesPlayed,
+          fd: Number(fd.toFixed(2)),
+          teamName: player.teamName,
+          teamImage: player.teamImage,
+          teamTotalWins: winMap[player.teamName] || 0,
+        };
+      }),
     });
 
   } catch (error) {

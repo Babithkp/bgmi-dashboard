@@ -67,6 +67,7 @@ export async function GET(
           finishesPoints: perf.finishesPoints,
           placementPoints: team.placementPoints,
           totalPoints: team.placementPoints + perf.finishesPoints,
+          status: perf.status,
         }))
       )
     );
@@ -91,6 +92,7 @@ export async function GET(
           placementPoints: 0,
           finishesPoints: 0,
           matchesPlayed: 0,
+          deathCount:0
         };
       }
 
@@ -98,6 +100,9 @@ export async function GET(
       acc[key].placementPoints += perf.placementPoints;
       acc[key].finishesPoints += perf.finishesPoints;
       acc[key].matchesPlayed += 1;
+      if (perf.status === "Dead") {
+        acc[key].deathCount += 1;
+      }
 
       return acc;
     }, {} as Record<string, {
@@ -109,6 +114,7 @@ export async function GET(
       placementPoints: number;
       finishesPoints: number;
       matchesPlayed: number;
+      deathCount:number
     }>);
 
     const topMVP = Object.values(playerTotals).sort(
@@ -121,6 +127,10 @@ export async function GET(
         { status: 404 }
       );
     }
+    const fd =
+    topMVP.deathCount === 0
+      ? topMVP.finishesPoints
+      : topMVP.finishesPoints / topMVP.deathCount;
 
     return NextResponse.json({
       tournamentName: tournament.name,
@@ -131,6 +141,7 @@ export async function GET(
         placementPoints: topMVP.placementPoints,
         finishesPoints: topMVP.finishesPoints,
         matchesPlayed: topMVP.matchesPlayed,
+        fd: Number(fd.toFixed(2)), 
         teamName: topMVP.teamName,
         teamImage: topMVP.teamImage,
         teamTotalWins: winMap[topMVP.teamName] || 0,

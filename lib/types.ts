@@ -56,8 +56,10 @@ export interface MatchTypes {
 }
 export interface MatchTeamTypes {
     id: string;
+    teamId: string;
     name: string;
     image: string;
+    groupImage: string;
     status?: string | null;
     placementPoints: number;
     totalPoints: number;

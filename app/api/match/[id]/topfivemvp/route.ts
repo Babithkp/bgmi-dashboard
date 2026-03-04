@@ -79,17 +79,28 @@ export async function GET(
     }
 
     const performancesWithTotals = match.matchTeam.flatMap(team =>
-      team.playerPerformances.map(player => ({
-        ...player,
-        teamId: team.id,
-        teamName: team.name,
-        teamImage: team.image,
-        teamGroupImage: team.groupImage,
-        totalWins: winMap[team.name] || 0,
-        matchesPlayed: matchCountMap[team.name] || 0,
-        placementPoints: team.placementPoints,
-        totalPoints: team.placementPoints + player.finishesPoints,
-      }))
+      team.playerPerformances.map(player => {
+        const deathCount = player.status === "Dead" ? 1 : 0;
+    
+        const fd =
+          deathCount === 0
+            ? player.finishesPoints
+            : player.finishesPoints / deathCount;
+    
+        return {
+          ...player,
+          teamId: team.id,
+          teamName: team.name,
+          teamImage: team.image,
+          teamGroupImage: team.groupImage,
+          totalWins: winMap[team.name] || 0,
+          matchesPlayed: matchCountMap[team.name] || 0,
+          placementPoints: team.placementPoints,
+          totalPoints: team.placementPoints + player.finishesPoints,
+          deathCount,
+          fd: Number(fd.toFixed(2)),
+        };
+      })
     );
 
     if (!performancesWithTotals.length) {
@@ -120,6 +131,7 @@ export async function GET(
         totalPoints: p.totalPoints,
         teamContribution: p.teamContribution,
         status: p.status,
+        fd: p.fd,
       })),
     });
 

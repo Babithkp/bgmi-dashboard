@@ -7,11 +7,13 @@ type TeamStats = {
   teamName: string;
   totalFinishPoints: number;
   totalPoints: number;
+  placementPoint:number;
   aliveCount: number;
   deadCount: number;
   teamImage: string;
   teamGroupImage: string;
   totalWins: number;
+  winrate: number;
   status: string | null;
   matchesPlayed: number;
 };
@@ -128,16 +130,17 @@ export async function GET() {
             status: team.status,
             totalFinishPoints: 0,
             totalPoints: team.totalPoints,
+            placementPoint: team.placementPoints,
             aliveCount: 0,
             deadCount: 0,
             totalWins: winMap[team.name] || 0,
+            winrate: team.winrate ?? 0,
             matchesPlayed: matchCountMap[team.name] || 0,
           };
         }
 
         team.playerPerformances.forEach((perf) => {
-          acc[team.id].totalFinishPoints += perf.finishesPoints;
-
+          acc[team.id].totalFinishPoints += perf.finishesPoints;          
           if (perf.status === "Alive") acc[team.id].aliveCount++;
           if (perf.status === "Dead") acc[team.id].deadCount++;
         });
@@ -155,7 +158,9 @@ export async function GET() {
         teamImage: team.teamImage,
         teamGroupImage: team.teamGroupImage,
         totalWins: team.totalWins,
+        winrate: team.winrate,
         matchesPlayed: team.matchesPlayed,
+        placementPoint:team.placementPoint,
         teamTotalFinishPoints: team.totalFinishPoints,
         teamTotalPoints: team.totalPoints,
         aliveCount: team.aliveCount,

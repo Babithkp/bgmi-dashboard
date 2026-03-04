@@ -30,6 +30,7 @@ export async function GET(
             id: true,
             name: true,
             image: true,
+            totalPoints: true,
             groupImage: true,
             playerPerformances: true,
             status: true,
@@ -100,21 +101,32 @@ export async function GET(
     const players = winnerTeam.playerPerformances.map((player) => ({
       name: player.name,
       image: player.image,
+      teamContribution: player.teamContribution,
+      totalfinishesPoints: player.finishesPoints,
     }));
     return NextResponse.json([{
       name: winnerTeam.name,
       image: winnerTeam.image,
       groupImage: winnerTeam.groupImage,
+      totalPoints: winnerTeam.totalPoints,
       totalWins: totalWins,
       matchesPlayed: matchesPlayed,
       player1Name: players[0]?.name,
       player1Image: players[0]?.image,
+      player1TeamContribution: players[0]?.teamContribution,
+      player1TotalfinishesPoints: players[0]?.totalfinishesPoints,
       player2Name: players[1]?.name,
       player2Image: players[1]?.image,
+      player2TeamContribution: players[1]?.teamContribution,
+      player2TotalfinishesPoints: players[1]?.totalfinishesPoints,
       player3Name: players[2]?.name,
       player3Image: players[2]?.image,
+      player3TeamContribution: players[2]?.teamContribution,
+      player3TotalfinishesPoints: players[2]?.totalfinishesPoints,
       player4Name: players[3]?.name,
       player4Image: players[3]?.image,
+      player4TeamContribution: players[3]?.teamContribution,
+      player4TotalfinishesPoints: players[3]?.totalfinishesPoints,
     }]);
 
   } catch (error) {

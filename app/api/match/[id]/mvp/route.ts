@@ -73,6 +73,7 @@ export async function GET(
           totalPoints: team.placementPoints + player.finishesPoints,
           status: player.status,
           teamContribution: player.teamContribution,
+          deathCount: player.status === "Dead" ? 1 : 0,
           teamName: team.name,
           teamImage: team.image,
           totalWins: winMap[team.name] || 0,
@@ -91,6 +92,10 @@ export async function GET(
     const mvp = performancesWithTotals.reduce((best, current) =>
       current.totalPoints > best.totalPoints ? current : best
     );
+    const fd =
+      mvp.deathCount === 0
+        ? mvp.finishesPoints
+        : mvp.finishesPoints / mvp.deathCount;
 
     return NextResponse.json([{
       name: mvp.name,
@@ -99,6 +104,7 @@ export async function GET(
       placementPoints: mvp.placementPoints,
       totalPoints: mvp.totalPoints,
       status: mvp.status,
+      fd: Number(fd.toFixed(2)),
       teamContribution: mvp.teamContribution,
       teamName: mvp.teamName,
       teamImage: mvp.teamImage,

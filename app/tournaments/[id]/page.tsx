@@ -55,7 +55,7 @@ export default function TournamentDetail({
       fetchTeams();
     };
     fetchTournament();
-  }, []);
+  }, [params]);
 
   return (
     <>

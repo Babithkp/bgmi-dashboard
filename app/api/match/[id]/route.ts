@@ -6,6 +6,7 @@ type TeamStats = {
   totalFinishPoints: number;
   teamGroupImage: string;
   totalPoints: number;
+  placementPoint: number;
   aliveCount: number;
   deadCount: number;
   totalWins: number;
@@ -118,6 +119,7 @@ export async function GET(
             totalPoints: 0,
             aliveCount: 0,
             deadCount: 0,
+            placementPoint: 0,
             totalWins: winMap[team.name] || 0,
             status: team.status ?? null,
             matchesPlayed: 0,
@@ -126,6 +128,7 @@ export async function GET(
 
         teamStats[team.name].matchesPlayed += 1;
         teamStats[team.name].totalPoints += team.totalPoints;
+        teamStats[team.name].placementPoint += team.placementPoints;
 
         for (const perf of team.playerPerformances) {
           teamStats[team.name].totalFinishPoints += perf.finishesPoints;
@@ -153,6 +156,7 @@ export async function GET(
         teamGroupImage: team.teamGroupImage,
         totalWins: team.totalWins,
         totalFinishPoints: team.totalFinishPoints,
+        placementPoint: team.placementPoint,
         totalPoints: team.totalPoints,
         matchesPlayed: team.matchesPlayed,
         aliveCount: team.aliveCount,
@@ -397,6 +401,47 @@ export async function PATCH(
         },
       });
     }
+    // Get alive player count per team
+    const teams = await prisma.matchTeam.findMany({
+      where: { matchId: id },
+      include: {
+        playerPerformances: {
+          select: { status: true }
+        }
+      }
+    });
+
+    let totalAlivePlayers = 0;
+
+    const aliveCounts: Record<string, number> = {};
+
+    for (const team of teams) {
+      const alive = team.playerPerformances.filter(
+        p => p.status === "Alive"
+      ).length;
+
+      aliveCounts[team.id] = alive;
+      totalAlivePlayers += alive;
+    }
+
+    // calculate winrate
+    await prisma.$transaction(
+      teams.map(team => {
+        const alive = aliveCounts[team.id] || 0;
+
+        const winrate =
+          totalAlivePlayers > 0
+            ? (alive / totalAlivePlayers) * 100
+            : 0;
+
+        return prisma.matchTeam.update({
+          where: { id: team.id },
+          data: {
+            winrate: Number(winrate.toFixed(2))
+          }
+        });
+      })
+    );
 
 
     return NextResponse.json({ success: true });

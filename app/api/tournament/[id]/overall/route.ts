@@ -4,14 +4,15 @@ import { GroupTypes, MatchPlayerPerformanceTypes, MatchTeamTypes, MatchTypes } f
 
 interface LeaderboardTeam {
     teamRank?: number;
-    teamId: string;
+    teamId: string;            // real team id (team.teamId)
     teamName: string;
     teamImage: string;
     teamGroupImage: string;
     totalWins: number;
     matchesPlayed: number;
     teamTotalFinishPoints: number;
-    teamTotalPoints: number;
+    placementPoints: number;   // sum across matches
+    teamTotalPoints: number;   // sum across matches
     aliveCount: number;
     deadCount: number;
     status?: string | null;
@@ -31,6 +32,7 @@ export async function GET(
                     include: {
                         matches: {
                             include: {
+                                winTeam: { select: { id: true } }, // compare by id
                                 matchTeam: {
                                     include: {
                                         playerPerformances: true
@@ -44,10 +46,7 @@ export async function GET(
         });
 
         if (!tournament) {
-            return NextResponse.json(
-                { error: "Tournament not found" },
-                { status: 404 }
-            );
+            return NextResponse.json({ error: "Tournament not found" }, { status: 404 });
         }
 
         const teamMap: Record<string, LeaderboardTeam> = {};
@@ -56,43 +55,45 @@ export async function GET(
             group.matches?.forEach((match: MatchTypes) => {
 
                 match.matchTeam?.forEach((team: MatchTeamTypes) => {
+                    const key = team.teamId ?? team.name;
 
-                    if (!teamMap[team.id]) {
-                        teamMap[team.id] = {
-                            teamId: team.id,
+                    if (!teamMap[key]) {
+                        teamMap[key] = {
+                            teamId: key,
                             teamName: team.name,
                             teamImage: team.image,
-                            teamGroupImage: team.group || "",
+                            teamGroupImage: team.groupImage || "",
                             totalWins: 0,
                             matchesPlayed: 0,
                             teamTotalFinishPoints: 0,
                             teamTotalPoints: 0,
+                            placementPoints: 0,
                             aliveCount: 0,
                             deadCount: 0,
                             status: team.status,
                         };
                     }
 
-                    const teamData = teamMap[team.id];
+                    const teamData = teamMap[key];
 
                     teamData.matchesPlayed += 1;
 
                     teamData.teamTotalPoints += team.totalPoints || 0;
 
+                    teamData.placementPoints += team.placementPoints || 0;
+
                     if (match.winTeam?.id === team.id) {
                         teamData.totalWins += 1;
                     }
-                    team.playerPerformances.forEach(
-                        (player: MatchPlayerPerformanceTypes) => {
-                            teamData.teamTotalFinishPoints += player.finishesPoints || 0;
-                            if (player.status === "Alive") {
-                                teamData.aliveCount += 1;
-                            } else {
-                                teamData.deadCount += 1;
-                            }
-                        }
-                    );
+
+                    team.playerPerformances.forEach((player: MatchPlayerPerformanceTypes) => {
+                        teamData.teamTotalFinishPoints += player.finishesPoints || 0;
+
+                        if (player.status === "Alive") teamData.aliveCount += 1;
+                        else teamData.deadCount += 1;
+                    });
                 });
+
             });
         });
 
@@ -107,7 +108,6 @@ export async function GET(
 
     } catch (error) {
         console.error(error);
-
         return NextResponse.json(
             { error: "Failed to fetch leaderboard" },
             { status: 500 }
