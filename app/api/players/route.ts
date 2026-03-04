@@ -23,6 +23,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+
+        const playerDefaults = [
+            "https://storage.trikonatech.com/dashboard/players/player1.jpeg",
+            "https://storage.trikonatech.com/dashboard/players/player2.jpeg",
+            "https://storage.trikonatech.com/dashboard/players/player3.jpeg",
+            "https://storage.trikonatech.com/dashboard/players/player4.jpeg",
+            "https://storage.trikonatech.com/dashboard/players/player5.jpeg",
+            "https://storage.trikonatech.com/dashboard/players/player6.jpeg",
+        ]
+
         const formData = await request.formData();
 
         const name = formData.get("name") as string;
@@ -44,6 +54,10 @@ export async function POST(request: Request) {
             const key = `dashboard/players/${name}-${Date.now()}.${ext}`;
 
             imageUrl = await uploadToS3(buffer, key, imageFile.type);
+        }
+
+        if (imageUrl === "") {
+            imageUrl = playerDefaults[Math.floor(Math.random() * playerDefaults.length)];
         }
 
         const player = await prisma.player.create({

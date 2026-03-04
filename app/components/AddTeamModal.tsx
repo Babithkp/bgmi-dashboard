@@ -123,7 +123,7 @@ export default function AddTeamModal({
   };
 
   const handleAddPlayer = async () => {
-    if (!newPlayer.name.trim() || !previewPlayerImage) {
+    if (!newPlayer.name.trim()) {
       toast.error("Fill all player fields");
       return;
     }
