@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
     try {
-        const { tournamentId, team1Id, team2Id } =
+        const { tournamentId, team1Id, team2Id, matchId } =
             await req.json();
 
         if (!tournamentId || !team1Id || !team2Id) {
@@ -14,7 +14,9 @@ export async function POST(req: Request) {
         }
 
         const matches = await prisma.match.findMany({
-            where: { tournamentId },
+            where: matchId
+                ? { id: matchId }
+                : { tournamentId },
             include: {
                 matchTeam: {
                     include: {
@@ -100,33 +102,33 @@ export async function POST(req: Request) {
         const teams = [t1, t2];
         await prisma.headOnTeams.createMany({
             data: teams.map((team) => {
-              const playersArray = Array.from(team.players.values());
-          
-              return {
-                name: team.name,
-                image: team.image,
-                groupImage: team.groupImage ?? "",
-          
-                totalWins: team.wins,
-                matchesPlayed: team.matchesPlayed,
-                placementPoints: team.totalPlacementPoints,
-                playersFinishesPoints: team.totalFinishes, // ✅ FIXED
-                totalPoints: team.totalPoints,
-          
-                player1Name: playersArray[0]?.name ?? "",
-                player1Image: playersArray[0]?.image ?? "",
-          
-                player2Name: playersArray[1]?.name ?? "",
-                player2Image: playersArray[1]?.image ?? "",
-          
-                player3Name: playersArray[2]?.name ?? "",
-                player3Image: playersArray[2]?.image ?? "",
-          
-                player4Name: playersArray[3]?.name ?? "",
-                player4Image: playersArray[3]?.image ?? "",
-              };
+                const playersArray = Array.from(team.players.values());
+
+                return {
+                    name: team.name,
+                    image: team.image,
+                    groupImage: team.groupImage ?? "",
+
+                    totalWins: team.wins,
+                    matchesPlayed: team.matchesPlayed,
+                    placementPoints: team.totalPlacementPoints,
+                    playersFinishesPoints: team.totalFinishes, // ✅ FIXED
+                    totalPoints: team.totalPoints,
+
+                    player1Name: playersArray[0]?.name ?? "",
+                    player1Image: playersArray[0]?.image ?? "",
+
+                    player2Name: playersArray[1]?.name ?? "",
+                    player2Image: playersArray[1]?.image ?? "",
+
+                    player3Name: playersArray[2]?.name ?? "",
+                    player3Image: playersArray[2]?.image ?? "",
+
+                    player4Name: playersArray[3]?.name ?? "",
+                    player4Image: playersArray[3]?.image ?? "",
+                };
             }),
-          });
+        });
 
 
         return NextResponse.json({
@@ -151,7 +153,7 @@ export async function POST(req: Request) {
     }
 }
 
-export async function GET(){
+export async function GET() {
     try {
         const data = await prisma.headOnTeams.findMany();
         return NextResponse.json(data);

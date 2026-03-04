@@ -68,6 +68,7 @@ model Match {
   id           String      @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   status       String?     @default("Live")
+  sortOrder    String?     @default("Total Points")
   group        Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   groupId      String      @db.ObjectId
   matchTeam    MatchTeam[]
@@ -90,7 +91,7 @@ model MatchTeam {
   status             String?                  @default("Live")
   placementPoints    Int                      @default(0)
   totalPoints        Int                      @default(0)
-  winrate            Float?                     @default(0)
+  winrate            Float?                   @default(0)
   match              Match?                   @relation(fields: [matchId], references: [id], onDelete: Cascade)
   matchId            String?                  @db.ObjectId
   playerPerformances MatchPlayerPerformance[]
@@ -107,7 +108,7 @@ model MatchPlayerPerformance {
   image            String
   finishesPoints   Int        @default(0)
   status           String     @default("Alive")
-  teamContribution Int        @default(0)
+  teamContribution Float      @default(0)
   matchTeam        MatchTeam? @relation(fields: [matchTeamId], references: [id], onDelete: Cascade)
   matchTeamId      String?    @db.ObjectId
 }
@@ -129,7 +130,7 @@ model HeadOnPlayers {
   totalPoints      Int
   placementPoints  Int
   finishesPoints   Int
-  teamContribution Int
+  teamContribution Float
   matchesPlayed    Int
   totalWins        Int
 }

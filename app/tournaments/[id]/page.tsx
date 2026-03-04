@@ -1,4 +1,5 @@
-"use client";import { useEffect, useState } from "react";
+"use client";
+import { useEffect, useState } from "react";
 import { ArrowLeft, User } from "lucide-react";
 import Link from "next/link";
 import Details from "@/app/components/tournmants/Details";
@@ -143,7 +144,7 @@ export default function TournamentDetail({
 
           {/* Links Tab */}
           {activeTab === "links" && (
-            <Links tournamentId={tournament?.id} teamList={teamList} />
+            <Links tournamentId={tournament?.id} allMatchData={allMatchData} />
           )}
         </div>
       </main>

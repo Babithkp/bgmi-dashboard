@@ -143,12 +143,11 @@ export async function GET(
     }
 
     const rankedTeams = Object.values(teamStats)
-      .sort((a, b) => {
-        if (b.totalWins !== a.totalWins) {
-          return b.totalWins - a.totalWins;
-        }
-        return b.totalPoints - a.totalPoints;
-      })
+      .sort((a, b) =>
+        match.sortOrder === "Total Points"
+          ? b.totalPoints - a.totalPoints
+          : b.aliveCount - a.aliveCount
+      )
       .map((team, index) => ({
         teamRank: index + 1,
         teamName: team.teamName,

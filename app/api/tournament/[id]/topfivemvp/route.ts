@@ -59,18 +59,25 @@ export async function GET(
     });
 
     const allPerformances = tournament.matches.flatMap(match =>
-      match.matchTeam.flatMap(team =>
-        team.playerPerformances.map(perf => ({
+      match.matchTeam.flatMap(team => {
+
+        const teamTotalfinish = team.playerPerformances.reduce(
+          (sum, p) => sum + (p.finishesPoints || 0),
+          0
+        );
+
+        return team.playerPerformances.map(perf => ({
           name: perf.name,
           image: perf.image,
           teamName: team.name,
           teamImage: team.image,
           finishesPoints: perf.finishesPoints,
           placementPoints: team.placementPoints,
+          teamTotalfinish,
           totalPoints: team.placementPoints + perf.finishesPoints,
           status: perf.status
-        }))
-      )
+        }));
+      })
     );
 
     if (!allPerformances.length) {
@@ -93,7 +100,9 @@ export async function GET(
           placementPoints: 0,
           finishesPoints: 0,
           matchesPlayed: 0,
-          deathCount: 0
+          deathCount: 0,
+          teamContribution: 0,
+          teamTotalFinishes: 0
         };
       }
 
@@ -101,6 +110,7 @@ export async function GET(
       acc[key].placementPoints += perf.placementPoints;
       acc[key].finishesPoints += perf.finishesPoints;
       acc[key].matchesPlayed += 1;
+      acc[key].teamTotalFinishes += perf.teamTotalfinish;
 
       if (perf.status === "Dead") {
         acc[key].deathCount += 1;
@@ -116,7 +126,9 @@ export async function GET(
       placementPoints: number;
       finishesPoints: number;
       matchesPlayed: number;
-      deathCount: number
+      deathCount: number;
+      teamContribution: number;
+      teamTotalFinishes: number;
     }>);
 
     const topMVP = Object.values(playerTotals).sort(
@@ -142,6 +154,12 @@ export async function GET(
           name: player.name,
           image: player.image,
           totalPoints: player.totalPoints,
+          teamContribution:
+            player.teamTotalFinishes > 0
+              ? Number(
+                ((player.finishesPoints / player.teamTotalFinishes) * 100).toFixed(2)
+              )
+              : 0,
           placementPoints: player.placementPoints,
           finishesPoints: player.finishesPoints,
           matchesPlayed: player.matchesPlayed,

@@ -324,3 +324,101 @@ export async function DELETE(
     );
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Tournament id required" },
+        { status: 400 }
+      );
+    }
+
+    // 1️⃣ Get teams linked to tournament
+    const tournament = await prisma.tournament.findUnique({
+      where: { id },
+      include: {
+        groupTeamTournament: {
+          include: {
+            team: true,
+          },
+        },
+      },
+    });
+
+    if (!tournament) {
+      return NextResponse.json(
+        { error: "Tournament not found" },
+        { status: 404 }
+      );
+    }
+
+    const matches = await prisma.match.findMany({
+      where: { tournamentId: id },
+      include: {
+        matchTeam: {
+          include: {
+            playerPerformances: {
+              select: {
+                playerId: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const playerMap: Record<
+      string,
+      {
+        id: string;
+        name: string;
+        image: string;
+      }
+    > = {};
+
+
+    matches.forEach((match) => {
+      match.matchTeam.forEach((team) => {
+        team.playerPerformances.forEach((player) => {
+          if (!playerMap[player.playerId]) {
+            playerMap[player.playerId] = {
+              id: player.playerId,
+              name: player.name,
+              image: player.image,
+            };
+          }
+        });
+      });
+    });
+
+    const players = Object.values(playerMap);
+    const teams = [
+      ...new Map(
+        tournament.groupTeamTournament.map((gtt) => [
+          gtt.team.id,
+          {
+            id: gtt.team.id,
+            name: gtt.team.name,
+          },
+        ])
+      ).values(),
+    ];
+
+    return NextResponse.json({
+      tournamentId: id,
+      teams,
+      players,
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Failed to fetch teams and players" },
+      { status: 500 }
+    );
+  }
+}

@@ -7,7 +7,7 @@ type TeamStats = {
   teamName: string;
   totalFinishPoints: number;
   totalPoints: number;
-  placementPoint:number;
+  placementPoint: number;
   aliveCount: number;
   deadCount: number;
   teamImage: string;
@@ -140,7 +140,7 @@ export async function GET() {
         }
 
         team.playerPerformances.forEach((perf) => {
-          acc[team.id].totalFinishPoints += perf.finishesPoints;          
+          acc[team.id].totalFinishPoints += perf.finishesPoints;
           if (perf.status === "Alive") acc[team.id].aliveCount++;
           if (perf.status === "Dead") acc[team.id].deadCount++;
         });
@@ -149,9 +149,12 @@ export async function GET() {
       },
       {}
     );
-
     const rankedTeams = Object.values(teamStats)
-      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .sort((a, b) =>
+        match.sortOrder === "Total Points"
+          ? b.totalPoints - a.totalPoints
+          : b.aliveCount - a.aliveCount
+      )
       .map((team, index) => ({
         teamRank: index + 1,
         teamName: team.teamName,
@@ -160,7 +163,7 @@ export async function GET() {
         totalWins: team.totalWins,
         winrate: team.winrate,
         matchesPlayed: team.matchesPlayed,
-        placementPoint:team.placementPoint,
+        placementPoint: team.placementPoint,
         teamTotalFinishPoints: team.totalFinishPoints,
         teamTotalPoints: team.totalPoints,
         aliveCount: team.aliveCount,
@@ -296,4 +299,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

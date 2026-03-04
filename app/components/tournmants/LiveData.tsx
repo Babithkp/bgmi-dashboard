@@ -1,5 +1,4 @@
-"use client";
-import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
+"use client";import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteModel from "../DeleteModel";
@@ -590,8 +589,6 @@ export default function LiveData({
                     </div>
                     <div className="flex flex-col gap-4">
                       {teamData.players.map((performance) => {
-                        const playerTotal =
-                          teamData.placementPoints + performance.finishesPoints;
                         return (
                           <div
                             key={performance.id}
@@ -679,9 +676,6 @@ export default function LiveData({
                                   +
                                 </button>
                               </div>
-                              <p className="text-right text-sm text-blue-400 font-medium">
-                                {playerTotal} pts
-                              </p>
                             </div>
                           </div>
                         );

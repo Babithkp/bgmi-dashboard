@@ -1,6 +1,7 @@
-import { TeamTypes } from "@/lib/types";import { Check, Copy } from "lucide-react";
+import { MatchTypes, PlayerTypes, TeamTypes } from "@/lib/types";
+import { Check, Copy } from "lucide-react";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export type ComparedPlayer = {
@@ -34,10 +35,10 @@ export type ComparedTeam = {
 
 export default function Links({
   tournamentId,
-  teamList,
+  allMatchData,
 }: {
   tournamentId: string | undefined;
-  teamList: TeamTypes[];
+  allMatchData: MatchTypes[] | undefined;
 }) {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,19 +46,17 @@ export default function Links({
   const [player2, setPlayer2] = useState<ComparedPlayer | null>(null);
   const [player1Id, setPlayer1Id] = useState<string>("");
   const [player2Id, setPlayer2Id] = useState<string>("");
-
+  const [matchId, setMatchId] = useState<string>("");
   const [team1, setTeam1] = useState<ComparedTeam | null>(null);
   const [team2, setTeam2] = useState<ComparedTeam | null>(null);
   const [team1Id, setTeam1Id] = useState<string>("");
   const [team2Id, setTeam2Id] = useState<string>("");
+  const [players, setPlayers] = useState<PlayerTypes[]>([]);
+  const [teams, setTeams] = useState<TeamTypes[]>([]);
+  const [sortOrderByPoints, setSortOrderByPoints] = useState(true);
 
   const [showPlayerTable, setShowPlayerTable] = useState(false);
   const [showTeamTable, setShowTeamTable] = useState(false);
-
-  const allPlayers = useMemo(
-    () => teamList.flatMap((team) => team.players),
-    [teamList],
-  );
 
   const copyToClipboard = (url: string, id: number) => {
     navigator.clipboard.writeText(url);
@@ -117,6 +116,7 @@ export default function Links({
         method: "POST",
         body: JSON.stringify({
           tournamentId: tournamentId,
+          matchId: matchId,
           player1Id: player1Id,
           player2Id: player2Id,
         }),
@@ -128,6 +128,7 @@ export default function Links({
         setShowPlayerTable(true);
         setPlayer1Id("");
         setPlayer2Id("");
+        setMatchId("");
         toast.success("Players compared");
       }
     } catch (error) {
@@ -151,6 +152,7 @@ export default function Links({
         method: "POST",
         body: JSON.stringify({
           tournamentId: tournamentId,
+          matchId: matchId,
           team1Id: team1Id,
           team2Id: team2Id,
         }),
@@ -163,6 +165,7 @@ export default function Links({
         setShowTeamTable(true);
         setTeam1Id("");
         setTeam2Id("");
+        setMatchId("");
         toast.success("Teams compared");
       }
     } catch (error) {
@@ -171,6 +174,60 @@ export default function Links({
     }
     setIsLoading(false);
   };
+
+  const handleSortOrderChange = async (value: boolean) => {
+    let text = "";
+    if (value) {
+      text = "Total Points";
+      setSortOrderByPoints(true);
+    } else {
+      text = "Alive Count";
+      setSortOrderByPoints(false);
+    }
+
+    try {
+      const req = await fetch(`/api/tournament/${tournamentId}/sortOrder`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          text,
+        }),
+      });
+      if (req.ok) {
+        toast.success("Sort order updated");
+      }
+    } catch (error) {
+      console.error("SORT ORDER ERROR:", error);
+      toast.error("Something went wrong");
+    }
+  };
+
+  useEffect(() => {
+    const fetchPlayers = async () => {
+      const res = await fetch("/api/tournament/players", {
+        method: "POST",
+        body: JSON.stringify({
+          id: tournamentId,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+
+        setPlayers(data.players);
+        setTeams(data.teams);
+      }
+    };
+    const fetchSortOrder = async () => {
+      const res = await fetch(`/api/tournament/${tournamentId}/sortOrder`, {
+        method: "GET",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSortOrderByPoints(data === "Total Points");
+      }
+    };
+    fetchPlayers();
+    fetchSortOrder();
+  }, [tournamentId]);
 
   return (
     <section className="space-y-10">
@@ -190,6 +247,24 @@ export default function Links({
                 </h3>
                 <p className="text-xs text-gray-500 truncate">{link.url}</p>
               </div>
+              {link.id == 2 && (
+                <div className="flex items-center gap-4 justify-between">
+                  <p className="text-xs text-gray-500">Sort By Alive count</p>
+                  <div
+                    onClick={() => handleSortOrderChange(!sortOrderByPoints)}
+                    className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300
+                    ${sortOrderByPoints ? "bg-green-500" : "bg-gray-700"}
+                    `}
+                  >
+                    <div
+                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300
+                      ${sortOrderByPoints ? "translate-x-6" : ""}
+                      `}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">Sort by Total Points</p>
+                </div>
+              )}
               <button
                 onClick={() => copyToClipboard(link.url, link.id)}
                 className="ml-4 px-4 py-2 bg-[#131720] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50 transition-colors flex items-center gap-2"
@@ -210,10 +285,25 @@ export default function Links({
           ))}
         </div>
       </div>
-      <div className="bg-[#131720] border border-gray-800 rounded-xl p-6">
-        <h2 className="font-semibold text-sm mb-6 text-gray-400">
-          Players Head On
-        </h2>
+      <div className="bg-[#131720] border border-gray-800 rounded-xl p-6 space-y-4">
+        <div className="flex items-center gap-4">
+          <h2 className="font-semibold text-sm mb-6 text-gray-400 w-1/2">
+            Players Head On
+          </h2>
+          <select
+            className="w-full bg-gray-900 border border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={matchId}
+            onChange={(e) => setMatchId(e.target.value)}
+          >
+            <option>Select Match</option>
+            {allMatchData &&
+              allMatchData.map((match) => (
+                <option key={match.id} value={match.id}>
+                  {match.name}
+                </option>
+              ))}
+          </select>
+        </div>
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <select
             className="w-full bg-gray-900 border border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -221,7 +311,7 @@ export default function Links({
             onChange={(e) => setPlayer1Id(e.target.value)}
           >
             <option value="">Select Player 1</option>
-            {allPlayers.map((p) => (
+            {players.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
@@ -234,7 +324,7 @@ export default function Links({
             onChange={(e) => setPlayer2Id(e.target.value)}
           >
             <option value="">Select Player 2</option>
-            {allPlayers.map((p) => (
+            {players.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
@@ -419,7 +509,7 @@ export default function Links({
               onChange={(e) => setTeam1Id(e.target.value)}
             >
               <option value="">Select Team 1</option>
-              {teamList.map((t) => (
+              {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
@@ -432,7 +522,7 @@ export default function Links({
               onChange={(e) => setTeam2Id(e.target.value)}
             >
               <option value="">Select Team 2</option>
-              {teamList.map((t) => (
+              {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
