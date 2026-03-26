@@ -1,5 +1,4 @@
-"use client";
-import { Save, Trash2, Upload } from "lucide-react";
+"use client";import { Save, Trash2, Upload } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -196,7 +195,6 @@ export default function Details({
     toast.success("Tournament updated");
   };
 
-
   useEffect(() => {
     if (!tournament?.groups) return;
 
@@ -283,12 +281,20 @@ export default function Details({
                   />
                 </label>
                 {editData.thumbnailFile && (
-                  <p className="mt-1.5 text-xs text-gray-500">
-                    {editData.thumbnailFile.name}
-                  </p>
+                  <>
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      {editData.thumbnailFile.name}
+                    </p>
+                    {editData.thumbnailFile?.size > 4500000 && (
+                      <p className="mt-1.5 text-xs text-red-400">
+                        File size is too large
+                      </p>
+                    )}
+                  </>
                 )}
+
                 <p className="mt-1.5 text-xs text-gray-600">
-                  JPG, PNG or GIF (Recommended: 800x400px)
+                  JPG, PNG or GIF (4.5MB Max)
                 </p>
               </div>
             </div>
@@ -373,6 +379,24 @@ export default function Details({
                         )
                       }
                     />
+                    {(() => {
+                      const file =
+                        editData[img.fileKey as keyof typeof editData];
+
+                      if (file instanceof File && file.size > 4500000) {
+                        return (
+                          <p className="mt-1.5 text-xs text-red-400">
+                            File size is too large
+                          </p>
+                        );
+                      }
+
+                      return null;
+                    })()}
+
+                    <p className="mt-1.5 text-xs text-gray-600">
+                      JPG, PNG or GIF (Max 4.5MB)
+                    </p>
                   </label>
                 </div>
               ))}

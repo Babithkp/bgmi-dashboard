@@ -1,5 +1,4 @@
-import { X, Upload } from "lucide-react";
-import Image from "next/image";
+import { X, Upload } from "lucide-react";import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -68,8 +67,17 @@ export default function AddTeamModal({
       setTeamLogo("");
       setTeamGroupImage("");
       setPlayers([]);
+      setGroupImageFile(null);
+      setLogoFile(null);
       return;
     }
+
+    setGroupImageFile(null);
+    setLogoFile(null);
+    setTeamGroupImage("");
+    setTeamLogo("");
+    setTeamName("");
+    setPlayers([]);
 
     setTeamName(initialTeam.name);
     setTeamLogo(initialTeam.image);
@@ -86,7 +94,6 @@ export default function AddTeamModal({
         })),
     );
   }, [initialTeam]);
-  console.log(initialTeam);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -141,6 +148,10 @@ export default function AddTeamModal({
 
       if (newPlayer.file) {
         formData.append("image", newPlayer.file);
+        if (newPlayer.file?.size > 4500000) {
+          toast.error("File size is too large");
+          return;
+        }
       }
 
       const res = await fetch("/api/players", {
@@ -262,9 +273,8 @@ export default function AddTeamModal({
     } catch (error) {
       console.error(error);
       toast.error("Something went wrong");
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -366,6 +376,21 @@ export default function AddTeamModal({
                       onChange={handleLogoChange}
                     />
                   </label>
+                  {logoFile && (
+                    <>
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        {logoFile.name}
+                      </p>
+                      {logoFile.size > 4500000 && (
+                        <p className="mt-1.5 text-xs text-red-400">
+                          File size is too large
+                        </p>
+                      )}
+                    </>
+                  )}
+                  <p className="mt-1.5 text-xs text-gray-600">
+                    JPG, PNG or GIF (Max 4.5MB)
+                  </p>
                 </div>
               </div>
             </div>
@@ -404,6 +429,21 @@ export default function AddTeamModal({
                       accept="image/*"
                       onChange={handleGroupImageChange}
                     />
+                    {groupImageFile && (
+                      <>
+                        <p className="mt-1.5 text-xs text-gray-500">
+                          {groupImageFile.name}
+                        </p>
+                        {groupImageFile.size > 4500000 && (
+                          <p className="mt-1.5 text-xs text-red-400">
+                            File size is too large
+                          </p>
+                        )}
+                      </>
+                    )}
+                    <p className="mt-1.5 text-xs text-gray-600">
+                      JPG, PNG or GIF (Max 4.5MB)
+                    </p>
                   </label>
                 </div>
               </div>
@@ -419,7 +459,11 @@ export default function AddTeamModal({
 
               <button
                 type="button"
-                onClick={() => setIsPlayerModalOpen(true)}
+                onClick={() => [
+                  setNewPlayer({ id: "", name: "", gameName: "", file: null }),
+                  setIsPlayerModalOpen(true),
+                  setPreviewPlayerImage(""),
+                ]}
                 className="text-xs text-blue-400 hover:text-blue-300"
               >
                 + Add Player
@@ -515,6 +559,21 @@ export default function AddTeamModal({
                               accept="image/*"
                               onChange={handlePlayerImageChange}
                             />
+                            {newPlayer.file && (
+                              <>
+                                <p className="mt-1.5 text-xs text-gray-500">
+                                  {newPlayer.file.name}
+                                </p>
+                                {newPlayer.file.size > 4500000 && (
+                                  <p className="mt-1.5 text-xs text-red-400">
+                                    File size is too large
+                                  </p>
+                                )}
+                              </>
+                            )}
+                            <p className="mt-1.5 text-xs text-gray-600">
+                              JPG, PNG or GIF (Max 4.5MB)
+                            </p>
                           </label>
                         </div>
                       </div>

@@ -1,5 +1,4 @@
-import { PlayerTypes, TeamTypes } from "@/lib/types";
-import { X, Upload } from "lucide-react";
+import { PlayerTypes, TeamTypes } from "@/lib/types";import { X, Upload } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -243,12 +242,19 @@ export default function AddPlayerModal({
                   />
                 </label>
                 {photoFile && (
-                  <p className="mt-1.5 text-xs text-gray-500">
-                    {photoFile.name}
-                  </p>
+                  <>
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      {photoFile.name}
+                    </p>
+                    {photoFile.size > 4500000 && (
+                      <p className="mt-1.5 text-xs text-red-400">
+                        File size is too large
+                      </p>
+                    )}
+                  </>
                 )}
                 <p className="mt-1.5 text-xs text-gray-600">
-                  JPG, PNG or GIF (Max 5MB)
+                  JPG, PNG or GIF (Max 4.5MB)
                 </p>
               </div>
             </div>
