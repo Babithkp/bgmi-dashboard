@@ -14,8 +14,10 @@ export type ComparedPlayer = {
   totalPoints: number;
   matchesPlayed: number;
   wins: number;
-  totalContribution: number;
+  playerContribution: number;
   avgContribution: number;
+  fdRatio: number;
+  rank: number;
 };
 export type ComparedTeam = {
   id: string;
@@ -103,11 +105,11 @@ export default function Links({
   ];
 
   const onPlayerCompareHandler = async () => {
-    setIsLoading(true);
-    if (!player1Id || !player2Id) {
+    if (player1Id === "" || player2Id == "") {
       toast.error("Please select both players");
       return;
     }
+    setIsLoading(true);
     setPlayer1(null);
     setPlayer2(null);
     setShowPlayerTable(false);
@@ -139,11 +141,11 @@ export default function Links({
   };
 
   const onTeamCompareHandler = async () => {
-    setIsLoading(true);
-    if (!team1Id || !team2Id) {
+    if (team1Id === "" || team2Id === "") {
       toast.error("Please select both teams");
       return;
     }
+    setIsLoading(true);
     setTeam1(null);
     setTeam2(null);
     setShowTeamTable(false);
@@ -202,31 +204,36 @@ export default function Links({
   };
 
   useEffect(() => {
-    const fetchPlayers = async () => {
-      const res = await fetch("/api/tournament/players", {
-        method: "POST",
-        body: JSON.stringify({
-          id: tournamentId,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
+    if (tournamentId) {
+      const fetchPlayers = async () => {
+        const res = await fetch("/api/tournament/players", {
+          method: "POST",
+          body: JSON.stringify({
+            id: tournamentId,
+          }),
+        });
+        if (res.ok) {
+          console.log(res);
 
-        setPlayers(data.players);
-        setTeams(data.teams);
-      }
-    };
-    const fetchSortOrder = async () => {
-      const res = await fetch(`/api/tournament/${tournamentId}/sortOrder`, {
-        method: "GET",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSortOrderByPoints(data === "Total Points");
-      }
-    };
-    fetchPlayers();
-    fetchSortOrder();
+          const data = await res.json();
+
+          setPlayers(data.players);
+          setTeams(data.teams);
+          console.log(data);
+        }
+      };
+      const fetchSortOrder = async () => {
+        const res = await fetch(`/api/tournament/${tournamentId}/sortOrder`, {
+          method: "GET",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSortOrderByPoints(data === "Total Points");
+        }
+      };
+      fetchSortOrder();
+      fetchPlayers();
+    }
   }, [tournamentId]);
 
   return (
@@ -342,79 +349,7 @@ export default function Links({
         {showPlayerTable && player1 && player2 && (
           <div className="grid md:grid-cols-3 gap-6 items-center">
             {/* Player 1 */}
-            {player1.image ? (
-              <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
-                <div className="text-center">
-                  <Image
-                    src={player1.image}
-                    width={100}
-                    height={100}
-                    alt="Player 1"
-                    className="mx-auto rounded-full border-4 border-blue-500 size-40 "
-                  />
-                  <h3 className="text-lg font-semibold text-white mt-4">
-                    {player1.name}
-                  </h3>
-                  <p className="text-gray-400">{player1.teamName}</p>
-                </div>
-
-                <div className="mt-6 space-y-3 text-sm">
-                  <div className="flex justify-between ">
-                    <span className="text-gray-400">Matches Played</span>
-                    <span className="text-white font-medium">
-                      {player1.matchesPlayed || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between ">
-                    <span className="text-gray-400">Matches Won</span>
-                    <span className="text-white font-medium">
-                      {player1.wins || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between ">
-                    <span className="text-gray-400">
-                      Team Contribution (Avg)
-                    </span>
-                    <span className="text-white font-medium">
-                      {player1.avgContribution || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between ">
-                    <span className="text-gray-400">Team Contribution</span>
-                    <span className="text-white font-medium">
-                      {player1.totalContribution || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-t border-gray-700 pt-3">
-                    <span className="text-gray-400">Total Finishes</span>
-                    <span className="text-white font-medium">
-                      {player1.totalFinishes || 0}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Total Placement</span>
-                    <span className="text-white font-medium">
-                      {player1.totalPlacementPoints || 0}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between border-t border-gray-700 pt-3">
-                    <span className="text-gray-300 font-medium">
-                      Total Points
-                    </span>
-                    <span className="text-blue-400 font-bold">
-                      {(player1.totalFinishes || 0) +
-                        (player1.totalPlacementPoints || 0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
-                <p>Player Has not played any matches yet</p>
-              </div>
-            )}
+            <HeadOnPlayers player={player1} />
 
             {/* VS */}
             <div className="text-center text-5xl font-bold text-gray-600">
@@ -422,79 +357,7 @@ export default function Links({
             </div>
 
             {/* Player 2 */}
-            {player2.image ? (
-              <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
-                <div className="text-center">
-                  <Image
-                    src={player2.image}
-                    width={100}
-                    height={100}
-                    alt="Player 2"
-                    className="mx-auto rounded-full border-4 border-red-500 object-cover size-40"
-                  />
-                  <h3 className="text-lg font-semibold text-white mt-4">
-                    {player2.name}
-                  </h3>
-                  <p className="text-gray-400">{player2.teamName}</p>
-                </div>
-
-                <div className="mt-6 space-y-3 text-sm">
-                  <div className="flex justify-between ">
-                    <span className="text-gray-400">Matches Played</span>
-                    <span className="text-white font-medium">
-                      {player2.matchesPlayed || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between ">
-                    <span className="text-gray-400">Matches Won</span>
-                    <span className="text-white font-medium">
-                      {player2.wins || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between ">
-                    <span className="text-gray-400">
-                      Team Contribution (Avg)
-                    </span>
-                    <span className="text-white font-medium">
-                      {player2.avgContribution || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between ">
-                    <span className="text-gray-400">Team Contribution</span>
-                    <span className="text-white font-medium">
-                      {player2.totalContribution || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-t border-gray-700 pt-3">
-                    <span className="text-gray-400">Total Finishes</span>
-                    <span className="text-white font-medium">
-                      {player2.totalFinishes || 0}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Total Placement</span>
-                    <span className="text-white font-medium">
-                      {player2.totalPlacementPoints || 0}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between border-t border-gray-700 pt-3">
-                    <span className="text-gray-300 font-medium">
-                      Total Points
-                    </span>
-                    <span className="text-blue-400 font-bold">
-                      {(player2.totalFinishes || 0) +
-                        (player2.totalPlacementPoints || 0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
-                <p>Player Has not played any matches yet</p>
-              </div>
-            )}
+            <HeadOnPlayers player={player2} />
           </div>
         )}
         <div className="w-full">
@@ -712,3 +575,87 @@ export default function Links({
     </section>
   );
 }
+
+const HeadOnPlayers = ({ player }: { player: ComparedPlayer }) => {
+  return (
+    <>
+      {player.image ? (
+        <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+          <div className="text-center">
+            <Image
+              src={player.image}
+              width={100}
+              height={100}
+              alt="Player 1"
+              className="mx-auto rounded-full border-4 border-blue-500 size-40 "
+            />
+            <h3 className="text-lg font-semibold text-white mt-4">
+              {player.name}
+            </h3>
+            <p className="text-gray-400">{player.teamName}</p>
+          </div>
+
+          <div className="mt-6 space-y-3 text-sm">
+            <div className="flex justify-between ">
+              <span className="text-gray-400">Matches Played</span>
+              <span className="text-white font-medium">
+                {player.matchesPlayed || 0}
+              </span>
+            </div>
+            <div className="flex justify-between ">
+              <span className="text-gray-400">Matches Won</span>
+              <span className="text-white font-medium">{player.wins || 0}</span>
+            </div>
+            <div className="flex justify-between ">
+              <span className="text-gray-400">Team Contribution (Avg)</span>
+              <span className="text-white font-medium">
+                {player.avgContribution || 0}
+              </span>
+            </div>
+            <div className="flex justify-between ">
+              <span className="text-gray-400">Team Contribution</span>
+              <span className="text-white font-medium">
+                {player.playerContribution?.toFixed(2) || 0}
+              </span>
+            </div>
+            <div className="flex justify-between ">
+              <span className="text-gray-400">Rank</span>
+              <span className="text-white font-medium">{player.rank || 0}</span>
+            </div>
+            <div className="flex justify-between ">
+              <span className="text-gray-400">FD ratio</span>
+              <span className="text-white font-medium">
+                {player.fdRatio || 0}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-gray-700 pt-3">
+              <span className="text-gray-400">Total Finishes</span>
+              <span className="text-white font-medium">
+                {player.totalFinishes || 0}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-gray-400">Total Placement</span>
+              <span className="text-white font-medium">
+                {player.totalPlacementPoints.toFixed(2) || 0}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-t border-gray-700 pt-3">
+              <span className="text-gray-300 font-medium">Total Points</span>
+              <span className="text-blue-400 font-bold">
+                {(player.totalFinishes || 0) +
+                  (player.totalPlacementPoints || 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+          <p>Player Has not played any matches yet</p>
+        </div>
+      )}
+    </>
+  );
+};

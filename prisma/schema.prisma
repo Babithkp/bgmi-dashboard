@@ -131,6 +131,8 @@ model HeadOnPlayers {
   placementPoints  Int
   finishesPoints   Int
   teamContribution Float
+  fdRatio          Float
+  rank             Int
   matchesPlayed    Int
   totalWins        Int
 }

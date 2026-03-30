@@ -712,7 +712,6 @@ export default function LiveData({
               value={winningTeamId || selectedMatch?.winTeam?.id || ""}
               onChange={(e) => setWinningTeamId(e.target.value)}
               className="px-3 py-2 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm  text-gray-300 focus:outline-none focus:border-gray-700"
-              disabled={selectedMatch?.status === "Completed"}
             >
               <option value="">Select Winner</option>
               {selectedMatch?.matchTeam?.map((team) => (

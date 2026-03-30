@@ -14,7 +14,6 @@ export async function POST(req: Request) {
         }
 
 
-
         const matches = await prisma.match.findMany({
             where: matchId
                 ? { id: matchId }
@@ -31,6 +30,7 @@ export async function POST(req: Request) {
 
         const p1 = {
             id: player1Id,
+            // rank: 0,
             name: "",
             gameName: "",
             image: "",
@@ -40,14 +40,43 @@ export async function POST(req: Request) {
             matchesPlayed: 0,
             wins: 0,
             teamTotalFinishes: 0,
-            totalContribution: 0,
+            noOfPlayerDeaths: 0,
         };
 
         const p2 = { ...p1, id: player2Id };
 
+        const playerMap = new Map();
+        matches.forEach(match => {
+            match.matchTeam.forEach(team => {
+                team.playerPerformances.forEach(player => {
+                    const id = player.id;
+
+                    if (playerMap.has(id)) {
+                        playerMap.get(id).finishesPoints += player.finishesPoints ?? 0;
+                    } else {
+                        playerMap.set(id, {
+                            id:id,
+                            name: player.name,
+                            finishesPoints: player.finishesPoints ?? 0
+                        });
+                    }
+                });
+            });
+        });
+
+        // Convert to array + sort
+        const sortedPlayers = [...playerMap.values()].sort(
+            (a, b) => b.finishesPoints - a.finishesPoints
+        );
+
+        // Add ranks
+        const rankedPlayers = sortedPlayers.map((player, index) => ({
+            rank: index + 1,
+            ...player
+        }));
+
         matches.forEach((match) => {
             match.matchTeam.forEach((team) => {
-
                 const teamTotalFinishes = team.playerPerformances.reduce(
                     (sum, p) => sum + (p.finishesPoints ?? 0),
                     0
@@ -57,23 +86,17 @@ export async function POST(req: Request) {
 
                     const isP1 = perf.playerId === player1Id;
                     const isP2 = perf.playerId === player2Id;
-
+                    
                     if (!isP1 && !isP2) return;
-
+                    
                     const target = isP1 ? p1 : p2;
-                    const playerContribution =
-                        teamTotalFinishes > 0
-                            ? ((perf.finishesPoints ?? 0) / teamTotalFinishes) * 100
-                            : 0;
-
                     target.name = perf.name;
                     target.image = perf.image;
                     target.teamName = team.name;
-
+                    target.noOfPlayerDeaths += perf.status === "Dead" ? 1 : 0;
                     target.totalFinishes += perf.finishesPoints ?? 0;
                     target.totalPlacementPoints += team.placementPoints ?? 0;
                     target.teamTotalFinishes += teamTotalFinishes;
-                    target.totalContribution += playerContribution;
                     target.matchesPlayed += 1;
 
                     if (match.winnerId === team.id) {
@@ -98,12 +121,6 @@ export async function POST(req: Request) {
                 ? Number(((p2.totalFinishes / p2.teamTotalFinishes) * 100).toFixed(2))
                 : 0;
 
-        const winner =
-            p1Total > p2Total
-                ? p1.name
-                : p2Total > p1Total
-                    ? p2.name
-                    : "Draw";
 
         await prisma.headOnPlayers.deleteMany();
 
@@ -119,6 +136,8 @@ export async function POST(req: Request) {
                     teamContribution: p1Contribution,
                     matchesPlayed: p1.matchesPlayed,
                     totalWins: p1.wins,
+                    rank: rankedPlayers.find((t) => t.name === p1.name)?.rank,
+                    fdRatio: p1.totalFinishes / (p1.noOfPlayerDeaths === 0 ? 1 : p1.noOfPlayerDeaths),
                 },
                 {
                     name: p2.name,
@@ -130,6 +149,8 @@ export async function POST(req: Request) {
                     teamContribution: p2Contribution,
                     matchesPlayed: p2.matchesPlayed,
                     totalWins: p2.wins,
+                    rank: rankedPlayers.find((t) => t.name === p2.name)?.rank,
+                    fdRatio: p2.totalFinishes / (p2.noOfPlayerDeaths === 0 ? 1 : p2.noOfPlayerDeaths),
                 },
             ],
         });
@@ -139,20 +160,27 @@ export async function POST(req: Request) {
                 player1: {
                     ...p1,
                     totalPoints: p1Total,
+                    playerContribution: p1Contribution,
+                    fdRatio: p1.totalFinishes / (p1.noOfPlayerDeaths === 0 ? 1 : p1.noOfPlayerDeaths),
+                    deathCount: p1.noOfPlayerDeaths,
+                    rank:rankedPlayers.find((t) => t.name === p1.name)?.rank,
                     avgContribution:
                         p1.matchesPlayed > 0
-                            ? Number((p1.totalContribution / p1.matchesPlayed).toFixed(2))
+                            ? Number((p1Contribution / p1.matchesPlayed).toFixed(2))
                             : 0,
                 },
                 player2: {
                     ...p2,
                     totalPoints: p2Total,
+                    playerContribution: p1Contribution,
+                    rank:rankedPlayers.find((t) => t.name === p2.name)?.rank, 
+                    fdRatio: p2.totalFinishes / (p2.noOfPlayerDeaths === 0 ? 1 : p2.noOfPlayerDeaths),
+                    deathCount: p2.noOfPlayerDeaths,
                     avgContribution:
                         p2.matchesPlayed > 0
-                            ? Number((p2.totalContribution / p2.matchesPlayed).toFixed(2))
+                            ? Number((p2Contribution / p2.matchesPlayed).toFixed(2))
                             : 0
                 },
-                winner,
             },
         });
 
