@@ -115,7 +115,7 @@ export async function GET(
           teamStats[team.name] = {
             teamName: team.name,
             teamImage: team.image,
-            teamShortName:team.shortName,
+            teamShortName:team.shortName || "",
             teamGroupImage: team.groupImage,
             totalFinishPoints: 0,
             totalPoints: 0,
