@@ -1,4 +1,5 @@
-import { X, Upload } from "lucide-react";import Image from "next/image";
+import { X, Upload } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -42,6 +43,7 @@ export default function AddTeamModal({
   initialTeam,
 }: AddTeamModalProps) {
   const [teamName, setTeamName] = useState("");
+  const [teamShortName, setTeamShortName] = useState("");
   const [teamLogo, setTeamLogo] = useState("");
   const [teamGroupImage, setTeamGroupImage] = useState("");
   const [groupImageFile, setGroupImageFile] = useState<File | null>(null);
@@ -64,6 +66,7 @@ export default function AddTeamModal({
   useEffect(() => {
     if (!initialTeam) {
       setTeamName("");
+      setTeamShortName("");
       setTeamLogo("");
       setTeamGroupImage("");
       setPlayers([]);
@@ -77,9 +80,11 @@ export default function AddTeamModal({
     setTeamGroupImage("");
     setTeamLogo("");
     setTeamName("");
+    setTeamShortName("");
     setPlayers([]);
 
     setTeamName(initialTeam.name);
+    setTeamShortName(initialTeam.shortName);
     setTeamLogo(initialTeam.image);
     setTeamGroupImage(initialTeam.groupImage);
     setPlayers(
@@ -208,6 +213,17 @@ export default function AddTeamModal({
     setIsDeleteModalOpen(false);
   };
 
+  const onModelClose = () => {
+    setLogoFile(null);
+    setGroupImageFile(null);
+    setTeamLogo("");
+    setTeamName("");
+    setTeamShortName("");
+    setPlayers([]);
+    onSubmit();
+    onClose();
+  };
+
   const handleSubmit = async () => {
     if (!teamName.trim()) {
       toast.error("Team name is required");
@@ -227,6 +243,7 @@ export default function AddTeamModal({
       const formData = new FormData();
 
       formData.append("name", teamName);
+      formData.append("shortName", teamShortName);
 
       if (logoFile) {
         formData.append("logo", logoFile);
@@ -267,6 +284,7 @@ export default function AddTeamModal({
       setGroupImageFile(null);
       setTeamLogo("");
       setTeamName("");
+      setTeamShortName("");
       setPlayers([]);
       onSubmit();
       onClose();
@@ -307,7 +325,7 @@ export default function AddTeamModal({
       {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={onModelClose}
       />
 
       {/* Modal */}
@@ -316,7 +334,7 @@ export default function AddTeamModal({
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
           <h2 className="text-lg font-medium text-gray-100">Team Editor</h2>
           <button
-            onClick={onClose}
+            onClick={onModelClose}
             className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 flex items-center justify-center transition-colors"
           >
             <X className="w-5 h-5" />
@@ -334,6 +352,17 @@ export default function AddTeamModal({
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder="Enter team name"
+              className="w-full px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-2">
+              Team Short Name
+            </label>
+            <input
+              value={teamShortName}
+              onChange={(e) => setTeamShortName(e.target.value)}
+              placeholder="Enter team short name"
               className="w-full px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300"
             />
           </div>
@@ -629,7 +658,7 @@ export default function AddTeamModal({
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4">
             <button
-              onClick={onClose}
+              onClick={onModelClose}
               disabled={isLoading}
               className="px-4 py-2.5 bg-[#0a0e1a] border border-gray-800 rounded-lg text-sm text-gray-300 hover:bg-gray-800/50"
             >

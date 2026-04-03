@@ -6,6 +6,7 @@ interface LeaderboardTeam {
     teamRank?: number;
     teamId: string;            // real team id (team.teamId)
     teamName: string;
+    teamShortName: string;
     teamImage: string;
     teamGroupImage: string;
     totalWins: number;
@@ -61,6 +62,7 @@ export async function GET(
                         teamMap[key] = {
                             teamId: key,
                             teamName: team.name,
+                            teamShortName: team.shortName,
                             teamImage: team.image,
                             teamGroupImage: team.groupImage || "",
                             totalWins: 0,

@@ -29,6 +29,7 @@ export async function POST(req: Request) {
         const t1 = {
             id: team1Id,
             name: "",
+            shortName: "",
             image: "",
             groupImage: "",
             totalFinishes: 0,
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
         const t2 = {
             id: team2Id,
             name: "",
+            shortName: "" ,
             image: "",
             groupImage: "",
             totalFinishes: 0,
@@ -64,6 +66,7 @@ export async function POST(req: Request) {
                     team.teamId === team1Id ? t1 : t2;
 
                 target.name = team.name;
+                target.shortName = team.shortName || "";
                 target.image = team.image;
                 target.groupImage = team.groupImage;
 
@@ -106,6 +109,7 @@ export async function POST(req: Request) {
 
                 return {
                     name: team.name,
+                    shortName: team.shortName,
                     image: team.image,
                     groupImage: team.groupImage ?? "",
 

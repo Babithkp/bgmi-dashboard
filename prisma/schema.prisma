@@ -20,6 +20,7 @@ model Player {
 model Team {
   id                  String                @id @default(auto()) @map("_id") @db.ObjectId
   name                String                @unique
+  shortName           String?
   image               String
   groupImage          String
   players             Player[]
@@ -46,7 +47,7 @@ model Tournament {
 model Group {
   id                  String                @id @default(auto()) @map("_id") @db.ObjectId
   name                String
-  tournament          Tournament?           @relation(fields: [tournamentId], references: [id])
+  tournament          Tournament?           @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   tournamentId        String?               @db.ObjectId
   groupTeamTournament GroupTeamTournament[]
   matches             Match[]
@@ -86,6 +87,7 @@ model MatchTeam {
   teamId             String                   @db.ObjectId
   group              String                   @db.ObjectId
   name               String
+  shortName          String?
   image              String
   groupImage         String
   status             String?                  @default("Live")
@@ -140,6 +142,7 @@ model HeadOnPlayers {
 model HeadOnTeams {
   id                    String  @id @default(auto()) @map("_id") @db.ObjectId
   name                  String
+  shortName             String
   image                 String
   groupImage            String
   totalWins             Int

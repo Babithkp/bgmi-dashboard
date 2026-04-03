@@ -29,6 +29,7 @@ export async function GET(
           select: {
             id: true,
             name: true,
+            shortName:true,
             image: true,
             totalPoints: true,
             groupImage: true,
@@ -106,6 +107,7 @@ export async function GET(
     }));
     return NextResponse.json([{
       name: winnerTeam.name,
+      shortName:winnerTeam.shortName,
       image: winnerTeam.image,
       groupImage: winnerTeam.groupImage,
       totalPoints: winnerTeam.totalPoints,

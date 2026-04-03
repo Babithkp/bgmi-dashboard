@@ -10,6 +10,7 @@ export interface PlayerTypes {
 export interface TeamTypes {
     id: string;
     name: string;
+    shortName:string
     image: string;
     groupImage: string;
     createdAt: string;
@@ -58,6 +59,7 @@ export interface MatchTeamTypes {
     id: string;
     teamId: string;
     name: string;
+    shortName:string
     image: string;
     groupImage: string;
     status?: string | null;

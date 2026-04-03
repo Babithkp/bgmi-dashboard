@@ -1,4 +1,5 @@
-"use client";import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
+"use client";
+import { Check, ChevronDown, Copy, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteModel from "../DeleteModel";
@@ -37,10 +38,12 @@ export default function LiveData({
   const groupedByTeam = selectedMatch?.matchTeam?.reduce(
     (acc, matchTeam) => {
       const teamName = matchTeam.name ?? "Unknown Team";
+      const teamShortName = matchTeam.shortName ?? "Unknown Team";
 
       if (!acc[teamName]) {
         acc[teamName] = {
           teamId: matchTeam.id,
+          teamShortName: teamShortName,
           placementPoints: matchTeam.placementPoints,
           players: [],
         };
@@ -59,6 +62,7 @@ export default function LiveData({
       string,
       {
         teamId: string;
+        teamShortName: string;
         placementPoints: number;
         players: PlayerWithTeamPoints[];
       }
@@ -419,7 +423,7 @@ export default function LiveData({
                     </button>
                   </div>
                 </div>
-                {selectedMatch?.status === "Completed" && (
+                {
                   <>
                     <div className="flex items-center gap-4 justify-between">
                       <p className="text-sm font-medium text-gray-400 w-full">
@@ -518,7 +522,7 @@ export default function LiveData({
                       </div>
                     </div>
                   </>
-                )}
+                }
               </div>
             </div>
             <div className="w-full flex items-center gap-4 justify-between">
@@ -556,6 +560,9 @@ export default function LiveData({
                     <div className="flex justify-between border-b border-gray-800 pb-4">
                       <h2 className="text-sm font-medium text-blue-400">
                         {teamName}
+                      </h2>
+                      <h2 className="text-sm font-medium text-blue-400">
+                        {teamData.teamShortName}
                       </h2>
                       <p className="text-sm">TF: {totalFinishes}</p>
                       <p className="text-sm text-blue-400 font-medium">

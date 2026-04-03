@@ -22,6 +22,7 @@ export type ComparedPlayer = {
 export type ComparedTeam = {
   id: string;
   name: string;
+  shortName: string;
   image: string;
   totalFinishes: number;
   totalPlacementPoints: number;
@@ -416,6 +417,9 @@ export default function Links({
                     <h3 className="text-xl font-semibold text-white mt-4 ">
                       {team1.name}
                     </h3>
+                    <p className="text-xs font-semibold text-white/80">
+                      ({team1.shortName})
+                    </p>
                   </div>
 
                   {/* Team Stats */}
@@ -503,6 +507,9 @@ export default function Links({
                     <h3 className="text-xl font-semibold text-white mt-4 ">
                       {team2.name}
                     </h3>
+                    <p className="text-xs font-semibold text-white/80">
+                      ({team1.shortName})
+                    </p>
                   </div>
 
                   <div className="mt-6 space-y-3 text-sm">

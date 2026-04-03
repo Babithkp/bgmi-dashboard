@@ -255,6 +255,7 @@ export async function POST(req: Request) {
       data: groupTeams.map(({ team }) => ({
         teamId: team.id,
         name: team.name,
+        shortName:team.shortName,
         image: team.image,
         groupImage: team.groupImage,
         group: groupId,

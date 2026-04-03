@@ -26,6 +26,7 @@ export default function TeamModal({
           <h2 className="text-lg font-medium text-gray-100">
             {teamList?.name}
           </h2>
+          <p>{teamList?.shortName}</p>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 flex items-center justify-center transition-colors"

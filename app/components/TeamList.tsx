@@ -75,6 +75,9 @@ export default function TeamList({ Teams, reFetchAll }: TeamListProbs) {
                 Team Name
               </th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                Team Short Name
+              </th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                 Total Players
               </th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
@@ -103,6 +106,9 @@ export default function TeamList({ Teams, reFetchAll }: TeamListProbs) {
                     />
                     <span className="text-sm text-gray-200">{team.name}</span>
                   </div>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-300">
+                  {team.shortName}
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-sm text-gray-300">

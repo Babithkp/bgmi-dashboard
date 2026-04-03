@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 type TeamStats = {
   teamName: string;
+  teamShortName:string
   totalFinishPoints: number;
   teamGroupImage: string;
   totalPoints: number;
@@ -114,6 +115,7 @@ export async function GET(
           teamStats[team.name] = {
             teamName: team.name,
             teamImage: team.image,
+            teamShortName:team.shortName,
             teamGroupImage: team.groupImage,
             totalFinishPoints: 0,
             totalPoints: 0,
@@ -151,6 +153,7 @@ export async function GET(
       .map((team, index) => ({
         teamRank: index + 1,
         teamName: team.teamName,
+        teamShortName:team.teamShortName,
         teamImage: team.teamImage,
         teamGroupImage: team.teamGroupImage,
         totalWins: team.totalWins,
