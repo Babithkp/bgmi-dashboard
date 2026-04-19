@@ -112,43 +112,42 @@ export async function GET() {
       },
     });
 
+    const totalPointsMap: Record<string, number> = {};
+
     const matchCountMap: Record<string, number> = {};
 
     for (const m of allTournamentMatches) {
-      for (const team of m.matchTeam) {
+      const fullMatch = await prisma.match.findUnique({
+        where: { id: m.id },
+        include: {
+          matchTeam: true,
+        },
+      });
+
+      if (!fullMatch) continue;
+
+      for (const team of fullMatch.matchTeam) {
         matchCountMap[team.name] =
           (matchCountMap[team.name] || 0) + 1;
+
+        totalPointsMap[team.name] =
+          (totalPointsMap[team.name] || 0) +
+          (team.totalPoints ?? 0);
       }
     }
 
-    const teamStats: Record<string, TeamStats> = {};
-
-    const allMatchesWithTeams = await prisma.match.findMany({
-      where: {
-        tournamentId: match.tournamentId,
-      },
-      include: {
-        matchTeam: {
-          include: {
-            playerPerformances: true,
-          },
-        },
-      },
-    });
-
-    for (const m of allMatchesWithTeams) {
-      for (const team of m.matchTeam) {
-
-        if (!teamStats[team.id]) {
-          teamStats[team.id] = {
+    const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
+      (acc, team) => {
+        if (!acc[team.id]) {
+          acc[team.id] = {
             teamName: team.name,
             teamShortName: team.shortName || "",
             teamImage: team.image,
             teamGroupImage: team.groupImage,
             status: team.status,
             totalFinishPoints: 0,
-            totalPoints: 0,
-            placementPoint: 0,
+            totalPoints: totalPointsMap[team.name] || 0,
+            placementPoint: team.placementPoints,
             aliveCount: 0,
             deadCount: 0,
             totalWins: winMap[team.name] || 0,
@@ -157,18 +156,16 @@ export async function GET() {
           };
         }
 
-        // ✅ Aggregate FULL tournament stats
-        teamStats[team.id].totalPoints += team.totalPoints ?? 0;
-        teamStats[team.id].placementPoint += team.placementPoints ?? 0;
+        team.playerPerformances.forEach((perf) => {
+          acc[team.id].totalFinishPoints += perf.finishesPoints;
+          if (perf.status === "Alive") acc[team.id].aliveCount++;
+          if (perf.status === "Dead") acc[team.id].deadCount++;
+        });
 
-        for (const perf of team.playerPerformances) {
-          teamStats[team.id].totalFinishPoints += perf.finishesPoints ?? 0;
-
-          if (perf.status === "Alive") teamStats[team.id].aliveCount++;
-          if (perf.status === "Dead") teamStats[team.id].deadCount++;
-        }
-      }
-    }
+        return acc;
+      },
+      {}
+    );
     const rankedTeams = Object.values(teamStats)
       .sort((a, b) =>
         match.sortOrder === "Total Points"
