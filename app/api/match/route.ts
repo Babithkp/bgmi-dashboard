@@ -121,8 +121,6 @@ export async function GET() {
       }
     }
 
-    const liveTeamIds = new Set(match.matchTeam.map((t) => t.id));
-
     const teamStats: Record<string, TeamStats> = {};
 
     const allMatchesWithTeams = await prisma.match.findMany({
