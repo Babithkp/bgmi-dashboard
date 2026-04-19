@@ -18,7 +18,7 @@ interface LeaderboardTeam {
     deadCount: number;
     status?: string | null;
 }
-interface ResponseLeaderboardTeam { 
+interface ResponseLeaderboardTeam {
     teamRank?: number;
     teamId: string;            // real team id (team.teamId)
     teamName: string;
@@ -116,7 +116,6 @@ export async function GET(
         });
 
         const leaderboard: ResponseLeaderboardTeam[] = Object.values(teamMap)
-            .filter((team) => team.totalWins > 0)
             .sort((a, b) => b.teamTotalPoints - a.teamTotalPoints)
             .map((team, index) => ({
                 teamId: team.teamId,
@@ -124,7 +123,7 @@ export async function GET(
                 teamShortName: team.teamShortName,
                 teamImage: team.teamImage,
                 teamGroupImage: team.teamGroupImage,
-                totalWins: "x"+team.totalWins,
+                totalWins: team.totalWins == 0 ? "" : "x" + team.totalWins,
                 matchesPlayed: team.matchesPlayed,
                 teamTotalFinishPoints: team.teamTotalFinishPoints,
                 teamTotalPoints: team.teamTotalPoints,

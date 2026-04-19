@@ -121,18 +121,36 @@ export async function GET() {
       }
     }
 
-    const teamStats = match.matchTeam.reduce<Record<string, TeamStats>>(
-      (acc, team) => {
-        if (!acc[team.id]) {
-          acc[team.id] = {
+    const liveTeamIds = new Set(match.matchTeam.map((t) => t.id));
+
+    const teamStats: Record<string, TeamStats> = {};
+
+    const allMatchesWithTeams = await prisma.match.findMany({
+      where: {
+        tournamentId: match.tournamentId,
+      },
+      include: {
+        matchTeam: {
+          include: {
+            playerPerformances: true,
+          },
+        },
+      },
+    });
+
+    for (const m of allMatchesWithTeams) {
+      for (const team of m.matchTeam) {
+
+        if (!teamStats[team.id]) {
+          teamStats[team.id] = {
             teamName: team.name,
             teamShortName: team.shortName || "",
             teamImage: team.image,
             teamGroupImage: team.groupImage,
             status: team.status,
             totalFinishPoints: 0,
-            totalPoints: team.totalPoints,
-            placementPoint: team.placementPoints,
+            totalPoints: 0,
+            placementPoint: 0,
             aliveCount: 0,
             deadCount: 0,
             totalWins: winMap[team.name] || 0,
@@ -141,16 +159,18 @@ export async function GET() {
           };
         }
 
-        team.playerPerformances.forEach((perf) => {
-          acc[team.id].totalFinishPoints += perf.finishesPoints;
-          if (perf.status === "Alive") acc[team.id].aliveCount++;
-          if (perf.status === "Dead") acc[team.id].deadCount++;
-        });
+        // ✅ Aggregate FULL tournament stats
+        teamStats[team.id].totalPoints += team.totalPoints ?? 0;
+        teamStats[team.id].placementPoint += team.placementPoints ?? 0;
 
-        return acc;
-      },
-      {}
-    );
+        for (const perf of team.playerPerformances) {
+          teamStats[team.id].totalFinishPoints += perf.finishesPoints ?? 0;
+
+          if (perf.status === "Alive") teamStats[team.id].aliveCount++;
+          if (perf.status === "Dead") teamStats[team.id].deadCount++;
+        }
+      }
+    }
     const rankedTeams = Object.values(teamStats)
       .sort((a, b) =>
         match.sortOrder === "Total Points"
