@@ -75,7 +75,7 @@ export async function GET(
 
     const tournamentMatches = await prisma.match.findMany({
       where: {
-        tournamentId: match.tournament.id,
+        id,
       },
       include: {
         matchTeam: {
