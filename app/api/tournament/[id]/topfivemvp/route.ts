@@ -132,7 +132,7 @@ export async function GET(
     }>);
 
     const topMVP = Object.values(playerTotals).sort(
-      (a, b) => b.totalPoints - a.totalPoints
+      (a, b) => b.finishesPoints - a.finishesPoints
     )
 
     if (!topMVP) {
