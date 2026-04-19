@@ -1,11 +1,9 @@
-"use client";
-import { useEffect, useState } from "react";
+"use client";import { useEffect, useState } from "react";
 import { User, Plus, Search, Calendar } from "lucide-react";
 import CreateTournamentModal from "../components/CreateTournamentModal";
 import Link from "next/link";
 import Image from "next/image";
 import { TournamentTypes } from "@/lib/types";
-
 
 export default function Tournaments() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,14 +46,16 @@ export default function Tournaments() {
       className="bg-[#131720] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-colors group"
     >
       <div className="relative h-40 overflow-hidden">
-        <Image
-          src={tournament.image}
-          alt={tournament.name}
-          width={400}
-          height={250}
-          unoptimized
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 "
-        />
+        {tournament.image && (
+          <Image
+            src={tournament.image}
+            alt={tournament.name}
+            width={400}
+            height={250}
+            unoptimized
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 "
+          />
+        )}
       </div>
       <div className="p-4">
         <h3 className="text-sm font-medium text-gray-100 mb-3">

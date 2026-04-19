@@ -129,6 +129,7 @@ model HeadOnPlayers {
   name             String
   image            String
   gameName         String?
+  teamImage        String
   totalPoints      Int
   placementPoints  Int
   finishesPoints   Int
@@ -141,6 +142,7 @@ model HeadOnPlayers {
 
 model HeadOnTeams {
   id                    String  @id @default(auto()) @map("_id") @db.ObjectId
+  rank                  Int
   name                  String
   shortName             String
   image                 String

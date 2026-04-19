@@ -30,10 +30,10 @@ export async function POST(req: Request) {
 
         const p1 = {
             id: player1Id,
-            // rank: 0,
             name: "",
             gameName: "",
             image: "",
+            teamImage: "",
             teamName: "",
             totalFinishes: 0,
             totalPlacementPoints: 0,
@@ -93,6 +93,7 @@ export async function POST(req: Request) {
                     target.name = perf.name;
                     target.image = perf.image;
                     target.teamName = team.name;
+                    target.teamImage = team.image;
                     target.noOfPlayerDeaths += perf.status === "Dead" ? 1 : 0;
                     target.totalFinishes += perf.finishesPoints ?? 0;
                     target.totalPlacementPoints += team.placementPoints ?? 0;
@@ -130,6 +131,7 @@ export async function POST(req: Request) {
                     name: p1.name,
                     image: p1.image,
                     gameName: p1.gameName ?? null,
+                    teamImage: p1.teamImage,
                     totalPoints: p1Total,
                     placementPoints: p1.totalPlacementPoints,
                     finishesPoints: p1.totalFinishes,
@@ -143,6 +145,7 @@ export async function POST(req: Request) {
                     name: p2.name,
                     image: p2.image,
                     gameName: p2.gameName ?? null,
+                    teamImage: p2.teamImage,
                     totalPoints: p2Total,
                     placementPoints: p2.totalPlacementPoints,
                     finishesPoints: p2.totalFinishes,

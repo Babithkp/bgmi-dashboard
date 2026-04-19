@@ -26,6 +26,15 @@ export async function POST(req: Request) {
             },
         });
 
+        const allTeamsMap = new Map<
+            string,
+            {
+                id: string;
+                totalPoints: number;
+                rank?: number;
+            }
+        >();
+
         const t1 = {
             id: team1Id,
             name: "",
@@ -43,7 +52,7 @@ export async function POST(req: Request) {
         const t2 = {
             id: team2Id,
             name: "",
-            shortName: "" ,
+            shortName: "",
             image: "",
             groupImage: "",
             totalFinishes: 0,
@@ -55,7 +64,19 @@ export async function POST(req: Request) {
         };
 
         matches.forEach((match) => {
+
             match.matchTeam.forEach((team) => {
+                const existing = allTeamsMap.get(team.teamId);
+
+                if (existing) {
+                    existing.totalPoints += team.totalPoints ?? 0;
+                } else {
+                    allTeamsMap.set(team.teamId, {
+                        id: team.teamId,
+                        totalPoints: team.totalPoints ?? 0,
+                    });
+                }
+
                 if (
                     team.teamId !== team1Id &&
                     team.teamId !== team2Id
@@ -101,11 +122,27 @@ export async function POST(req: Request) {
             });
         });
 
+        const rankedAllTeams = Array.from(allTeamsMap.values())
+            .sort((a, b) => b.totalPoints - a.totalPoints);
+
+        rankedAllTeams.forEach((team, index) => {
+            team.rank = index + 1;
+        });
+        const t1Rank =
+            rankedAllTeams.find((t) => t.id === t1.id)?.rank ?? 0;
+
+        const t2Rank =
+            rankedAllTeams.find((t) => t.id === t2.id)?.rank ?? 0;
+
+
+
         await prisma.headOnTeams.deleteMany();
         const teams = [t1, t2];
         await prisma.headOnTeams.createMany({
             data: teams.map((team) => {
                 const playersArray = Array.from(team.players.values());
+                const rank =
+                    team.id === t1.id ? t1Rank : t2Rank;
 
                 return {
                     name: team.name,
@@ -116,9 +153,9 @@ export async function POST(req: Request) {
                     totalWins: team.wins,
                     matchesPlayed: team.matchesPlayed,
                     placementPoints: team.totalPlacementPoints,
-                    playersFinishesPoints: team.totalFinishes, // ✅ FIXED
+                    playersFinishesPoints: team.totalFinishes,
                     totalPoints: team.totalPoints,
-
+                    rank,
                     player1Name: playersArray[0]?.name ?? "",
                     player1Image: playersArray[0]?.image ?? "",
 
@@ -139,10 +176,12 @@ export async function POST(req: Request) {
             comparison: {
                 team1: {
                     ...t1,
+                    rank: t1Rank,
                     players: Array.from(t1.players.values()),
                 },
                 team2: {
                     ...t2,
+                    rank: t2Rank,
                     players: Array.from(t2.players.values()),
                 },
             },

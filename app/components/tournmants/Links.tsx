@@ -9,6 +9,7 @@ export type ComparedPlayer = {
   name: string;
   image: string;
   teamName: string;
+  teamImage: string;
   totalFinishes: number;
   totalPlacementPoints: number;
   totalPoints: number;
@@ -23,6 +24,7 @@ export type ComparedTeam = {
   id: string;
   name: string;
   shortName: string;
+  rank: number;
   image: string;
   totalFinishes: number;
   totalPlacementPoints: number;
@@ -128,6 +130,7 @@ export default function Links({
         const data = await res.json();
         setPlayer1(data.comparison.player1);
         setPlayer2(data.comparison.player2);
+
         setShowPlayerTable(true);
         setPlayer1Id("");
         setPlayer2Id("");
@@ -164,6 +167,7 @@ export default function Links({
         const data = await res.json();
         setTeam1(data.comparison.team1);
         setTeam2(data.comparison.team2);
+        console.log(data.comparison.team1);
 
         setShowTeamTable(true);
         setTeam1Id("");
@@ -425,6 +429,12 @@ export default function Links({
                   {/* Team Stats */}
                   <div className="mt-6 space-y-3 text-sm">
                     <div className="flex justify-between">
+                      <span className="text-gray-400">Rank</span>
+                      <span className="text-white font-medium">
+                        {team1.rank || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-gray-400">Matches Played</span>
                       <span className="text-white font-medium">
                         {team1.matchesPlayed || 0}
@@ -514,6 +524,12 @@ export default function Links({
 
                   <div className="mt-6 space-y-3 text-sm">
                     <div className="flex justify-between">
+                      <span className="text-gray-400">Rank</span>
+                      <span className="text-white font-medium">
+                        {team2.rank || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-gray-400">Matches Played</span>
                       <span className="text-white font-medium">
                         {team2.matchesPlayed || 0}
@@ -588,18 +604,29 @@ const HeadOnPlayers = ({ player }: { player: ComparedPlayer }) => {
     <>
       {player.image ? (
         <div className="bg-gray-900 rounded-2xl p-6 shadow-xl">
-          <div className="text-center">
-            <Image
-              src={player.image}
-              width={100}
-              height={100}
-              alt="Player 1"
-              className="mx-auto rounded-full border-4 border-blue-500 size-40 "
-            />
-            <h3 className="text-lg font-semibold text-white mt-4">
-              {player.name}
-            </h3>
-            <p className="text-gray-400">{player.teamName}</p>
+          <div className="flex justify-between">
+            <div className="flex items-center justify-center flex-col gap-2">
+              <Image
+                src={player.teamImage}
+                width={100}
+                height={100}
+                alt="Player 1"
+                className="mx-auto  border-4 border-blue-500 size-40 "
+              />
+              <p className="text-gray-400">{player.teamName}</p>
+            </div>
+            <div className="text-center">
+              <Image
+                src={player.image}
+                width={100}
+                height={100}
+                alt="Player 1"
+                className="mx-auto rounded-full border-4 border-blue-500 size-40 "
+              />
+              <h3 className="text-lg font-semibold text-white mt-4">
+                {player.name}
+              </h3>
+            </div>
           </div>
 
           <div className="mt-6 space-y-3 text-sm">

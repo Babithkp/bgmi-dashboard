@@ -112,7 +112,7 @@ export async function GET(
     }
 
     const sorted = performancesWithTotals.sort(
-      (a, b) => b.totalPoints - a.totalPoints
+      (a, b) => b.finishesPoints - a.finishesPoints
     );
 
     const top5 = sorted.slice(0, 5);
