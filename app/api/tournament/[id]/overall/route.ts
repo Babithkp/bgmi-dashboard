@@ -18,6 +18,22 @@ interface LeaderboardTeam {
     deadCount: number;
     status?: string | null;
 }
+interface ResponseLeaderboardTeam { 
+    teamRank?: number;
+    teamId: string;            // real team id (team.teamId)
+    teamName: string;
+    teamShortName: string;
+    teamImage: string;
+    teamGroupImage: string;
+    totalWins: string;
+    matchesPlayed: number;
+    teamTotalFinishPoints: number;
+    placementPoints: number;   // sum across matches
+    teamTotalPoints: number;   // sum across matches
+    aliveCount: number;
+    deadCount: number;
+    status?: string | null;
+}
 
 export async function GET(
     req: Request,
@@ -99,10 +115,23 @@ export async function GET(
             });
         });
 
-        const leaderboard: LeaderboardTeam[] = Object.values(teamMap)
+        const leaderboard: ResponseLeaderboardTeam[] = Object.values(teamMap)
+            .filter((team) => team.totalWins > 0)
             .sort((a, b) => b.teamTotalPoints - a.teamTotalPoints)
             .map((team, index) => ({
-                ...team,
+                teamId: team.teamId,
+                teamName: team.teamName,
+                teamShortName: team.teamShortName,
+                teamImage: team.teamImage,
+                teamGroupImage: team.teamGroupImage,
+                totalWins: "x"+team.totalWins,
+                matchesPlayed: team.matchesPlayed,
+                teamTotalFinishPoints: team.teamTotalFinishPoints,
+                teamTotalPoints: team.teamTotalPoints,
+                placementPoints: team.placementPoints,
+                aliveCount: team.aliveCount,
+                deadCount: team.deadCount,
+                status: team.status,
                 teamRank: index + 1
             }));
 
