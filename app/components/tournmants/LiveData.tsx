@@ -295,6 +295,47 @@ export default function LiveData({
 
   return (
     <div className="space-y-6">
+      <div className="bg-[#131720] border-gray-800 border flex items-center gap-4 justify-between fixed top-17 left-1/2 -translate-x-1/2 p-2 rounded-2xl px-3 z-50">
+        <button
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium
+              transition-colors flex items-center gap-2"
+          onClick={handleSaveScores}
+          disabled={isLoading || selectedMatch?.status === "Completed"}
+        >
+          {isLoading ? "Updating..." : "Update Data"}
+        </button>
+        <div>
+          <div>
+            {(() => {
+              const { totalAlive, totalTeamAlive } = Object.entries(
+                groupedByTeam || {},
+              ).reduce(
+                (acc, [, team]) => {
+                  const alivePlayers = team.players.filter(
+                    (player) => player.status === "Alive",
+                  );
+
+                  if (alivePlayers.length > 0) {
+                    acc.totalTeamAlive += 1;
+                  }
+
+                  acc.totalAlive += alivePlayers.length;
+
+                  return acc;
+                },
+                { totalAlive: 0, totalTeamAlive: 0 },
+              );
+
+              return (
+                <div>
+                  <p>Total Players: {totalAlive}</p>
+                  <p>Total Teams : {totalTeamAlive}</p>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
       <div className="bg-[#131720] border border-gray-800 rounded-xl p-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
@@ -540,53 +581,6 @@ export default function LiveData({
               >
                 {isLoading ? "Updating..." : "Update Data"}
               </button>
-            </div>
-            <div className="bg-[#131720] flex items-center gap-4 justify-between fixed p-2 rounded-2xl px-3">
-              <button
-                className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                onClick={() => setIsDeleteModalOpen(true)}
-              >
-                <Trash2 className="w-4 h-4 text-red-400" />
-              </button>
-              <button
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium
-              transition-colors flex items-center gap-2"
-                onClick={handleSaveScores}
-                disabled={isLoading || selectedMatch?.status === "Completed"}
-              >
-                {isLoading ? "Updating..." : "Update Data"}
-              </button>
-              <div>
-                <div>
-                  {(() => {
-                    const { totalAlive, totalTeamAlive } = Object.entries(
-                      groupedByTeam || {},
-                    ).reduce(
-                      (acc, [, team]) => {
-                        const alivePlayers = team.players.filter(
-                          (player) => player.status === "Alive",
-                        );
-
-                        if (alivePlayers.length > 0) {
-                          acc.totalTeamAlive += 1;
-                        }
-
-                        acc.totalAlive += alivePlayers.length;
-
-                        return acc;
-                      },
-                      { totalAlive: 0, totalTeamAlive: 0 },
-                    );
-
-                    return (
-                      <div>
-                        <p>Total Players: {totalAlive}</p>
-                        <p>Total Teams : {totalTeamAlive}</p>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
             </div>
           </div>
 
