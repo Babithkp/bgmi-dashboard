@@ -381,7 +381,7 @@ export default function LiveData({
 
       {selectedMatch && (
         <div className="bg-[#131720] border border-gray-800 rounded-xl p-6">
-          <div className=" mb-4 flex flex-col gap-4">
+          <div className=" mb-4 flex flex-col gap-4 relative">
             <div className="flex gap-4 items-start w-full justify-between">
               <div className="">
                 <p className="text-sm font-medium text-gray-400">
@@ -525,7 +525,7 @@ export default function LiveData({
                 }
               </div>
             </div>
-            <div className="w-full flex items-center gap-4 justify-between">
+            <div className="w-full flex items-center gap-4 justify-between ">
               <button
                 className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 onClick={() => setIsDeleteModalOpen(true)}
@@ -541,6 +541,53 @@ export default function LiveData({
                 {isLoading ? "Updating..." : "Update Data"}
               </button>
             </div>
+            <div className="bg-[#131720] flex items-center gap-4 justify-between fixed p-2 rounded-2xl px-3">
+              <button
+                className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                onClick={() => setIsDeleteModalOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 text-red-400" />
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium
+              transition-colors flex items-center gap-2"
+                onClick={handleSaveScores}
+                disabled={isLoading || selectedMatch?.status === "Completed"}
+              >
+                {isLoading ? "Updating..." : "Update Data"}
+              </button>
+              <div>
+                <div>
+                  {(() => {
+                    const { totalAlive, totalTeamAlive } = Object.entries(
+                      groupedByTeam || {},
+                    ).reduce(
+                      (acc, [, team]) => {
+                        const alivePlayers = team.players.filter(
+                          (player) => player.status === "Alive",
+                        );
+
+                        if (alivePlayers.length > 0) {
+                          acc.totalTeamAlive += 1;
+                        }
+
+                        acc.totalAlive += alivePlayers.length;
+
+                        return acc;
+                      },
+                      { totalAlive: 0, totalTeamAlive: 0 },
+                    );
+
+                    return (
+                      <div>
+                        <p>Total Players: {totalAlive}</p>
+                        <p>Total Teams : {totalTeamAlive}</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -555,7 +602,7 @@ export default function LiveData({
                 return (
                   <div
                     key={teamData.teamId}
-                    className="border border-gray-800 rounded-xl p-4 bg-[#0f1320]"
+                    className="border border-gray-800 rounded-xl p-4 bg-[#0f1320] "
                   >
                     <div className="flex justify-between border-b border-gray-800 pb-4">
                       <h2 className="text-sm font-medium text-blue-400">
@@ -599,7 +646,7 @@ export default function LiveData({
                         return (
                           <div
                             key={performance.id}
-                            className="bg-[#0a0e1a] p-3 rounded-lg border border-gray-800 flex gap-4 flex-col"
+                            className={`bg-[#0a0e1a] p-3 rounded-lg border border-gray-800 flex gap-4 flex-col ${performance.status == "Dead" ? "opacity-50" : "opacity-100"}`}
                           >
                             <div className="relative flex justify-between items-center ">
                               <div>
