@@ -91,7 +91,7 @@ export async function GET(
     }
 
     const mvp = performancesWithTotals.reduce((best, current) =>
-      current.totalPoints > best.totalPoints ? current : best
+      current.finishesPoints > best.finishesPoints ? current : best
     );
     const fd =
       mvp.deathCount === 0
