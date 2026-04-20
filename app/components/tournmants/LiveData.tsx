@@ -294,8 +294,8 @@ export default function LiveData({
   }, [selectedMatch]);
 
   return (
-    <div className="space-y-6">
-      <div className="bg-[#131720] border-gray-800 border flex items-center gap-4 justify-between fixed top-17 left-1/2 -translate-x-1/2 p-2 rounded-2xl px-3 z-50">
+    <div className="space-y-6 ">
+      <div className="bg-[#131720] border-gray-800 border flex items-center gap-4 justify-between fixed top-17 right-8  p-2 rounded-2xl px-3 z-50">
         <button
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium
               transition-colors flex items-center gap-2"
