@@ -117,6 +117,7 @@ export async function GET(
 
         const leaderboard: ResponseLeaderboardTeam[] = Object.values(teamMap)
             .sort((a, b) => b.teamTotalPoints - a.teamTotalPoints)
+            .filter((team) => team.teamId !== "69e461face8a601830b31df8")
             .map((team, index) => ({
                 teamId: team.teamId,
                 teamName: team.teamName,
